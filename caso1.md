@@ -51,10 +51,11 @@ Informes Caso 1:
 Usuarios Caso 1:
 ![](./Recursos/datosCaso1-usuarios.png)
 
-Videos de los usuarios:
-![](./Recursos/video1.mp4)
-![](./Recursos/video2.mp4)
-![](./Recursos/video3.mp4)
+## Videos de los usuarios:
+#### Aquí están los videos de los usuarios:
+[Video 1](./Recursos/video1.mp4)  
+[Video 2](./Recursos/video2.mp4)  
+[Video 3](./Recursos/video3.mp4)  
 
 
 
