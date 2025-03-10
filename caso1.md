@@ -37,4 +37,24 @@ WireFrame 2:
 
 #### De la misma forma que con la anterior, se procuró mantener la IA y la notificación que le muestra al usuario ya con la información almacenada y verificada.
 
+## Creacion con AI de las pantallas:
+#### Se utilizo Lovable para crear las pantallas con AI, ambas puedeb ser accesadas en estas urls: https://preview--colorful-creation-tool.lovable.app/payment-config y https://preview--colorful-creation-tool.lovable.app/ 
+#### De aca se sacaron dos pantallazos para el siguiente paso.
+
+## Creacion de Test de Usabilidad
+#### se utilizo la herramienta loop11 para lo cual se hizo 1 solo estudio, el cual es accesible de esta url (para probarlo): https://www.loop11.com/ui/?l11_uid=107069 
+#### se visualizan 4 usuarios, ya que uno de nosotros lo probo para estar seguro que la informacion llegaba 
+
+Informes Caso 1:
+![](./Recursos/datosCaso1.png)
+
+Usuarios Caso 1:
+![](./Recursos/datosCaso1-usuarios.png)
+
+Videos de los usuarios:
+![](./Recursos/video1.mp4)
+![](./Recursos/video2.mp4)
+![](./Recursos/video3.mp4)
+
+
 
