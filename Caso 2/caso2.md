@@ -1,6 +1,6 @@
 # Caso 2
 
-# System name - set your own name
+# System name - Billbot
 Marcelo Gomez
 Isaac Rojas
 Juan Carlos Valverde
