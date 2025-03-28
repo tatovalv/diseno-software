@@ -57,40 +57,47 @@ The application follows an N-layer architecture, where:
 - The database (PostgreSQL + DynamoDB) stores user payment configurations and transaction logs.
 - The authentication layer (Cognito) manages user sessions and authorization.
 - Cloud infrastructure (AWS Fargate, API Gateway, Lambda) ensures scalability and resilience.
-- The mobile application is built with React Native (hybrid approach), and the web version is implemented with ReactJS using client-side rendering (CSR).
+
+The mobile application is built with React Native (hybrid approach), and the web version is implemented with ReactJS using client-side rendering (CSR). The state is managed using Redux Toolkit, allowing seamless synchronization between different user interactions.
+
+The frontend communicates with backend services via GraphQL APIs, ensuring optimized data retrieval. Transactions, authentication, and user settings are managed through secure API calls with AWS API Gateway, protecting endpoints against malicious traffic.
 
 #### Visual Components
 
 ##### Patterns & Principles
 
-- SOLID principles (Maintainability and scalability)
-- DRY principle (Avoid code repetition)
-- Separation of Concerns (SoC) (Frontend, Backend, Database layers)
-- Responsive Design (Mobile-first approach with Tailwind CSS)
-- Atomic Design for reusable UI components
-- State management with Redux for efficient data handling
-- Toolkits and Standards
-- AWS Amplify UI components for authentication screens
-- Tailwind CSS for UI styling
-- Storybook for UI component testing
-- Material Design Guidelines for UI/UX consistency
+- SOLID principles: Used in the backend to ensure maintainability and scalability.
+- DRY principle: Applied throughout the codebase to avoid redundancy and improve reusability.
+- Separation of Concerns (SoC): Ensures clear division between frontend, backend, and database logic.
+- Responsive Design: Implemented in the frontend using Tailwind CSS to support various screen sizes.
+- Atomic Design: Used in React components for reusable UI elements.
+- State management with Redux: Ensures efficient data handling and UI updates across all components.
+
+##### Toolkits and Standards
+- AWS Amplify UI components: For authentication screens and easy Cognito integration.
+- Tailwind CSS: For maintaining consistent and responsive UI design.
+- Storybook: For UI component testing in isolation.
+- Material Design Guidelines: Ensures consistent UI/UX experience across platforms.
+- Chakra UI: Provides flexible, accessible components for better frontend development.
 
 ##### Object Design Patterns
 
 The application follows object-oriented design patterns such as:
 
-- Factory Pattern for creating API service instances.
-- Singleton Pattern for managing authentication state.
-- Observer Pattern for event-driven UI updates (notifications and reminders).
-- Adapter Pattern for standardizing API responses from different banks.
+- Factory Pattern: Used in the backend to create instances of payment services dynamically, ensuring modularity.
+- Singleton Pattern: Manages authentication state across different components to prevent unnecessary re-initialization.
+- Observer Pattern: Enables real-time updates for notifications and payment statuses through WebSockets.    
+- Adapter Pattern: Standardizes API responses from different banks to maintain consistency and ensure compatibility.
+- Strategy Pattern: Used in payment processing to handle different payment methods dynamically (e.g., card, bank transfer, digital wallet).
+- Command Pattern: Manages transactional operations to ensure they can be executed, rolled back, or retried if needed.
 
 
 ### External Services
 
 The system integrates with various external services to enhance its functionality:
 
-- Authentication & Authorization: AWS Cognito (OAuth, MFA, SSO)
-- Payments & Banking APIs: Stripe (subscription plans), SINPE/BAC APIs (automated transactions)
+- Authentication & Authorization: AWS Cognito (OAuth, MFA, SSO). Manages user authentication and authorization, ensuring secure access to the application.
+- Payments & Banking APIs: Stripe (subscription plans), SINPE/BAC APIs (automated transactions). Handles subscription billing for different user plans and payment verification.
 - Cloud Storage: AWS S3 (for storing logs and voice command data)
 - AI/NLP Processing: Amazon Transcribe & Lex (voice recognition for payments)
 - Notifications & Messaging: Twilio (SMS notifications), AWS SNS (push notifications)
