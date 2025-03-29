@@ -119,3 +119,111 @@ Using a demo code, proceed to test how the chosen platform works and how the log
 Using Postman, make API calls to simulate authentication with MFA. Document the process and save your own Postman collection for future review
 
 suggested platforms to look into: auth0, okta, cognito, MS entra, onelogin, firebase, veriam -->
+
+### Project structure
+![imagen](Recursos/ProjectStructure1.png)
+![imagen](Recursos/ProjectStructure2.png)
+![imagen](Recursos/ProjectStructure3.png)
+#### Function of the directories:
+#### apps/
+<div style="padding-left: 20px"> 
+mobile/ -- React Native app<br>
+<div style="padding-left: 20px"> 
+assets/ -- Assets for the app (images, fonts, etc.)<br>
+
+components/ -- Reusable components, key aspect in atomic design (atoms (buttons, inputs), molecules (forms, input groups), organisms (headers, navigation bars) and tamplates)<br>
+
+<div style="padding-left: 20px">  
+
+</div> 
+features/ -- Feature-based modules <br> 
+<div style="padding-left: 20px"> 
+auth/ -- Authentication flows<br>  
+payments/ -- Payment management<br>  
+notifications/ -- Directory for the notifications feature<br> 
+settings/ -- User settings<br>  
+</div>   <br>
+
+navigation/ -- App navigation setup<br>
+stores/ -- Directory state management<br>
+utils/ -- Helper functions, hooks<br>
+App.tsx -- Main app entry point<br>
+app.json -- Expo config<br>
+</div> 
+</div>
+
+<div style="padding-left: 20px"> 
+web/ -- ReactJS web app<br>
+<div style="padding-left: 20px"> 
+public/ -- Static files<br>
+
+<div style="padding-left: 20px">  
+ 
+</div> 
+src/
+<div style="padding-left: 20px"> 
+components/ -- Reusable UI components<br> 
+features/ -- Feature modules<br>
+layouts/ -- Page layouts<br>  
+stores/ -- Centralizes all global state management<br>  
+styles/ -- Global styles (Tailwind config)<br> 
+utils/ -- Helpers, custom hooks<br>   
+App.tsx -- Web entry point<br> 
+main.tsx -- React root<br> 
+</div>
+
+</div>
+</div>  
+
+#### infrastructure/ -- AWS Infrastructure
+<div style="padding-left: 20px">  
+cognito/ -- Cognito User/Identity Pool setup <br>
+database/ -- RDS (PostgreSQL) + DynamoDB configs <br>
+networking/ -- VPC, API Gateway, WAF rules <br> 
+serverless/ -- Lambda functions   
+storage/ -- S3 buckets for logs/voice data  <br> 
+monitoring/ -- CloudWatch, X-Ray configs  <br>
+</div> 
+
+#### packages/
+<div style="padding-left: 20px"> 
+api/ -- NestJS Backend<br>
+<div style="padding-left: 20px">  
+src/<br> 
+<div style="padding-left: 20px"> 
+auth/ -- Auth module (with Cognito)<br> 
+payments/ -- Payment processing logic<br> 
+notifications/ -- Notification services<br> 
+users/ -- User management<br> 
+common/ -- Common decorators, filters, etc.<br> 
+config/ -- AWS database configs<br> 
+graphql/ -- GraphQL schema/resolvers<br> 
+models/ -- Database models (TypeORM)<br> 
+utils/ -- Helpers, validators<br> 
+app.module.ts -- Root module<br> 
+main.ts -- Entry point<br>
+</div> 
+test/ -- Integration/unit tests<br> 
+</div> <br> 
+core/ -- Shared code (TS libraries)<br> 
+<div style="padding-left: 20px"> 
+dtos/ -- Shared data transfer objects<br> 
+interfaces/ -- Common interfaces<br> 
+constants/ -- Enums, config constants<br> 
+utils/ -- Cross-platform utilities<br> 
+</div>
+</div>
+
+#### scripts/
+<div style="padding-left: 20px"> 
+deploy/ -- Deployment scripts<br> 
+db/ -- Database migrations/seeding<br> 
+test/ -- Test automation<br> 
+</div>
+
+
+
+
+
+
+
