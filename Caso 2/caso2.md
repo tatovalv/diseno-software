@@ -221,7 +221,12 @@ db/ -- Database migrations/seeding<br>
 test/ -- Test automation<br> 
 </div>
 
+### Final FE architecture diagram
+![imagen](Recursos/FE.jpg)
 
+
+#### Class Diagram
+![imagen](Recursos/DiagramaClases.png)
 
 
 
