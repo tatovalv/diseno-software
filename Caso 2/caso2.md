@@ -47,6 +47,19 @@ Implementation Steps:
 - Customize UI components for login/signup screens.
 - Use Postman to test MFA API calls and store results in the repository.
 
+
+Repository Structure
+```
+/src
+  ├── App.js                     # Uses Amplify Authenticator
+  ├── aws-exports.js            # AWS backend config
+  └── components/
+        └── LoginForm.js        # Optional custom login
+/docs
+  └── PaymentAssistant_AuthTests.postman_collection.json
+```
+
+Code Implementation:
 ```
 // LoginForm.js (Custom)
 import React, { useState } from 'react';
