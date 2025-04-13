@@ -47,7 +47,55 @@ Implementation Steps:
 - Customize UI components for login/signup screens.
 - Use Postman to test MFA API calls and store results in the repository.
 
+```
+// LoginForm.js (Custom)
+import React, { useState } from 'react';
+import { Auth } from 'aws-amplify';
 
+export default function LoginForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+
+  const handleSignIn = async (e) => {
+    e.preventDefault();
+    try {
+      await Auth.signIn(email, password);
+      alert('Login successful');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: '400px', margin: 'auto', padding: '2rem' }}>
+      <h2>Login</h2>
+      <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column' }}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={{ marginBottom: '1rem', padding: '0.5rem' }}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={{ marginBottom: '1rem', padding: '0.5rem' }}
+        />
+        <button type="submit" style={{ padding: '0.5rem', backgroundColor: '#007bff', color: 'white' }}>
+          Login
+        </button>
+        {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
+      </form>
+    </div>
+  );
+}
+```
 #### Client Architecture
 
 The application follows an N-layer architecture, where:
