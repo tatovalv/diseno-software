@@ -109,6 +109,14 @@ export default function LoginForm() {
   );
 }
 ```
+
+Postman Test Summary:
+
+- Endpoint: https://yourdomain.auth.region.amazoncognito.com/oauth2/token
+- Method: POST
+- Scope: aws.cognito.signin.user.admin
+- MFA Challenge Response Flow included
+
 #### Client Architecture
 
 The application follows an N-layer architecture, where:
