@@ -505,6 +505,7 @@ DynamoDB: for fast access to logs and transaction history.
 This setup lets us grow from a few hundred to tens of thousands of users without major changes.
 
 6. Tech Stack and Tools
+
 | Part of the App	Tool | Why We Use It |
 | --------- | -------- |
 | Frontend ReactJS / React Native	| Shared components for mobile & web |
