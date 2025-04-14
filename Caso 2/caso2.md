@@ -218,11 +218,33 @@ Cognito MFA Postman Collection:
 InitiateAuth
 ![imagen](Recursos/postman-intiateAuth.jpg)
 
+Response:
+```
+{
+  "ChallengeName": "SOFTWARE_TOKEN_MFA",
+  "Session": "EXAMPLESESSIONTOKEN=="
+}
+```
+
 RespondToAuthChallenge
 ![imagen](Recursos/postman-respondToAuthChallenge.jpg)
 
+Response:
+```
+{
+  "ChallengeName": "SOFTWARE_TOKEN_MFA",
+  "ClientId": "3bt4exampleclientidfoo9vvv6",
+  "ChallengeResponses": {
+    "USERNAME": "testuser@example.com",
+    "SOFTWARE_TOKEN_MFA_CODE": "123456"
+  },
+  "Session": "EXAMPLESESSIONTOKEN=="
+}
+```
+
 Autheticated API Request
 ![imagen](Recursos/postman-AutheticatedAPIRequest.jpg)
+
 
 
 #### Client Architecture
