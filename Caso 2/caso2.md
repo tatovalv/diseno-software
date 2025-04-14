@@ -505,15 +505,15 @@ DynamoDB: for fast access to logs and transaction history.
 This setup lets us grow from a few hundred to tens of thousands of users without major changes.
 
 6. Tech Stack and Tools
-Part of the App	Tool	Why We Use It
-Frontend	ReactJS / React Native	Shared components for mobile & web
-Backend	Node.js + NestJS	Structured and scalable backend
-API	GraphQL	Flexible data fetching
-Auth	AWS Cognito	Secure login, supports MFA
-DB	PostgreSQL (Aurora), DynamoDB	Structured and fast access to records
-Voice Commands	Amazon Lex, Transcribe	AI-powered voice processing
-Notifications	Twilio, SNS	SMS and push notifications
-Infra as Code	AWS Amplify, CDK	Set up cloud infrastructure programmatically
+| Part of the App	Tool | Why We Use It |
+| Frontend | ReactJS / React Native	Shared components for mobile & web |
+| Backend |	Node.js + NestJS	Structured and scalable backend |
+| API |	GraphQL	Flexible data fetching |
+| Auth | AWS Cognito	Secure login, supports MFA |
+| DB | PostgreSQL (Aurora), DynamoDB	Structured and fast access to records |
+| Voice Commands | Amazon Lex, Transcribe	AI-powered voice processing |
+| Notifications | Twilio, SNS	SMS and push notifications |
+| Infra as Code |	AWS Amplify, CDK	Set up cloud infrastructure programmatically |
 
 7. Service vs. Microservices
 We’re building a modular monolith for now:
