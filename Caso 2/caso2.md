@@ -112,7 +112,7 @@ export default function LoginForm() {
 
 Cognito MFA Postman Collection:
 
-'''
+```
 {
   "info": {
     "name": "AWS Cognito MFA Simulation",
@@ -213,7 +213,7 @@ Cognito MFA Postman Collection:
     }
   ]
 }
-'''
+```
 
 #### Client Architecture
 
