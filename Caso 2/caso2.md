@@ -431,3 +431,138 @@ test/ -- Test automation<br>
 
 
 
+## Backend Architecture
+
+1. API and Application Architecture
+We chose to use GraphQL to build our API. This allows the frontend to ask for exactly the data it needs, making our app faster and more efficient—especially important when we have both web and mobile users.
+
+Instead of using a monolithic structure, we're going with an N-layer (modular) architecture. This means our code is organized into layers:
+
+One layer handles incoming requests.
+
+Another handles business logic (the rules of our app).
+
+Another talks to the database.
+
+And finally, one more connects with external services like banks or SMS providers.
+
+This makes our app easier to manage, test, and grow over time.
+
+2. Internal Layers for Requests and Responses
+Our application will handle requests in this order:
+
+GraphQL Resolver Layer – receives and routes the request.
+
+Service Layer – handles logic like “is this a valid payment?” or “should I send a notification?”
+
+Repository Layer – reads/writes to the database.
+
+External API Adapter Layer – connects to banks, Stripe, and voice tools like Amazon Lex.
+
+3. Object Design Patterns in Action
+We use some popular object-oriented programming patterns to organize logic:
+
+Factory: Helps choose the correct bank/payment processor depending on the user’s setup.
+
+Adapter: Transforms responses from different banks into a single format our app understands.
+
+Observer: Listens for events like “payment succeeded” and sends a notification automatically.
+
+Command: Wraps payment actions so we can retry them or cancel them if needed.
+
+Strategy: Chooses between different payment types (credit card, SINPE, etc.).
+
+These patterns help us write code that is more modular, reusable, and testable.
+
+4. Hosting Model: Serverless Cloud on AWS
+We’re using AWS Cloud with a serverless architecture:
+
+That means we don’t manage the servers ourselves.
+
+AWS automatically scales the app up or down based on usage.
+
+It’s cost-effective and great for apps that start small but grow fast.
+
+We’ll use:
+
+Lambda for background tasks (like reminders).
+
+Fargate to run backend services in containers.
+
+Aurora Serverless (PostgreSQL) and DynamoDB for databases.
+
+5. Hardware and Cloud Machines
+We don’t need fixed hardware. Instead, we’ll use:
+
+AWS Fargate: lets us run containers without worrying about servers.
+
+AWS Lambda: runs small functions on demand, perfect for processing payments or events.
+
+Aurora (PostgreSQL): auto-scaling relational database.
+
+DynamoDB: for fast access to logs and transaction history.
+
+This setup lets us grow from a few hundred to tens of thousands of users without major changes.
+
+6. Tech Stack and Tools
+Part of the App	Tool	Why We Use It
+Frontend	ReactJS / React Native	Shared components for mobile & web
+Backend	Node.js + NestJS	Structured and scalable backend
+API	GraphQL	Flexible data fetching
+Auth	AWS Cognito	Secure login, supports MFA
+DB	PostgreSQL (Aurora), DynamoDB	Structured and fast access to records
+Voice Commands	Amazon Lex, Transcribe	AI-powered voice processing
+Notifications	Twilio, SNS	SMS and push notifications
+Infra as Code	AWS Amplify, CDK	Set up cloud infrastructure programmatically
+
+7. Service vs. Microservices
+We’re building a modular monolith for now:
+
+It’s a single codebase, but divided into logical services:
+
+UserService, PaymentService, NotificationService, and VoiceCommandService.
+
+Later, if needed, we can split them into microservices.
+
+This makes it easier for small teams to collaborate without needing complex deployment pipelines.
+
+8. Event-Driven Features and Messaging
+Some parts of our app need to react to events, like when a payment is successful or a reminder needs to be sent.
+
+So we’ll use:
+
+SQS (Simple Queue Service) to manage tasks like sending reminders.
+
+SNS (Simple Notification Service) to push alerts via SMS or app notifications.
+
+EventBridge to trigger workflows (like “voice command received”).
+
+These tools make the system more reliable and scalable—especially useful when there are lots of users doing things at the same time.
+
+9. PI Gateway for Security and Scalability
+Yes—we need an API Gateway.
+
+We’re using AWS API Gateway, which:
+
+Acts as the single entry point to our backend.
+
+Checks if users are logged in (JWT from Cognito).
+
+Supports rate limiting (protects us from abuse).
+
+Can connect securely to our backend (Lambda, Fargate).
+
+This helps us keep things secure, organized, and scalable.
+
+✅ Summary Table
+| Category	| Decision |
+| --------- | -------- |
+| API Type  | GraphQL for app, REST for bank/payment APIs |
+| Architecture | Modular Monolith with N-layer design |
+| Hosting | Serverless on AWS (Lambda, Fargate) |
+| Request Flow | Resolver → Service → Repository → Adapter |
+| Design Patterns |	Factory, Adapter, Observer, Command, Strategy |
+| Messaging | SQS, SNS, EventBridge |
+| Gateway |	AWS API Gateway for all entry points |
+| Scalability |	Auto-managed by AWS |
+| Team Structure | Organized by service modules (Payments, Users, etc.) |
