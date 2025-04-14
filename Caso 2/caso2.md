@@ -215,6 +215,16 @@ Cognito MFA Postman Collection:
 }
 ```
 
+InitiateAuth
+![imagen](Recursos/postman-intiateAuth.jpg)
+
+RespondToAuthChallenge
+![imagen](Recursos/postman-respondToAuthChallenge.jpg)
+
+Autheticated API Request
+![imagen](Recursos/postman-AutheticatedAPIRequest.jpg)
+
+
 #### Client Architecture
 
 The application follows an N-layer architecture, where:
