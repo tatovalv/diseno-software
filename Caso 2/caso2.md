@@ -506,6 +506,7 @@ This setup lets us grow from a few hundred to tens of thousands of users without
 
 6. Tech Stack and Tools
 | Part of the App	Tool | Why We Use It |
+| --------- | -------- |
 | Frontend | ReactJS / React Native	Shared components for mobile & web |
 | Backend |	Node.js + NestJS	Structured and scalable backend |
 | API |	GraphQL	Flexible data fetching |
