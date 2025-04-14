@@ -110,12 +110,110 @@ export default function LoginForm() {
 }
 ```
 
-Postman Test Summary:
+Cognito MFA Postman Collection:
 
-- Endpoint: https://yourdomain.auth.region.amazoncognito.com/oauth2/token
-- Method: POST
-- Scope: aws.cognito.signin.user.admin
-- MFA Challenge Response Flow included
+'''
+{
+  "info": {
+    "name": "AWS Cognito MFA Simulation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "fictitious-id-1234"
+  },
+  "item": [
+    {
+      "name": "1 - InitiateAuth",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-amz-json-1.1"
+          },
+          {
+            "key": "X-Amz-Target",
+            "value": "AWSCognitoIdentityProviderService.InitiateAuth"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"AuthParameters\": {\n    \"USERNAME\": \"testuser@example.com\",\n    \"PASSWORD\": \"TestPassword123!\"\n  },\n  \"AuthFlow\": \"USER_PASSWORD_AUTH\",\n  \"ClientId\": \"3bt4exampleclientidfoo9vvv6\"\n}"
+        },
+        "url": {
+          "raw": "https://cognito-idp.us-west-2.amazonaws.com/",
+          "protocol": "https",
+          "host": [
+            "cognito-idp",
+            "us-west-2",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "2 - RespondToAuthChallenge",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-amz-json-1.1"
+          },
+          {
+            "key": "X-Amz-Target",
+            "value": "AWSCognitoIdentityProviderService.RespondToAuthChallenge"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ChallengeName\": \"SOFTWARE_TOKEN_MFA\",\n  \"ClientId\": \"3bt4exampleclientidfoo9vvv6\",\n  \"ChallengeResponses\": {\n    \"USERNAME\": \"testuser@example.com\",\n    \"SOFTWARE_TOKEN_MFA_CODE\": \"123456\"\n  },\n  \"Session\": \"EXAMPLESESSIONTOKEN==\"\n}"
+        },
+        "url": {
+          "raw": "https://cognito-idp.us-west-2.amazonaws.com/",
+          "protocol": "https",
+          "host": [
+            "cognito-idp",
+            "us-west-2",
+            "amazonaws",
+            "com"
+          ],
+          "path": [
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "3 - Authenticated API Request",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{AccessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "https://myapi.example.com/user/profile",
+          "protocol": "https",
+          "host": [
+            "myapi",
+            "example",
+            "com"
+          ],
+          "path": [
+            "user",
+            "profile"
+          ]
+        }
+      }
+    }
+  ]
+}
+'''
 
 #### Client Architecture
 
