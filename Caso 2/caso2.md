@@ -427,8 +427,37 @@ test/ -- Test automation<br>
 #### Class Diagram
 ![imagen](Recursos/DiagramaClases.png)
 
+## Backend Design Specifications
 
+### Proof of Concepts
+- #### 1- Handler Responsibilities (SOLID & Cohesion Principle)
+  - POC Step 1: The handlers responsibilities need to be clearly defined and it was decided to create a data save handler and a data fetch handler that can access AWS and perform simple POST and GET requests.
+  
+  - POC Step 2: As there was no clear difference in the code of the two handlers, it was decided to better distribute the responsibilities in each of them in order to follow the SOLID principle. In addition, other problems were solved, such as the handlers calling directly to the repositories. This was solved by making a better management of the repository.
+  
+  - POC Step 3: The advantages over the template handlers are the explicit separation of functions, each handler has a single purpose, making them easy to maintain and scale without affecting the functionality of the individual handlers.  
 
+- #### 3- Logger Improvements (Design Pattern Required)  
+  - POC Step 1: The main problem of the logger was that its functionality was too simple and did not provide more than a message with a timestamp, so it was decided to create a logger for AWS CloudWatch (which ensures that the logs are not lost, unlike the `console.log`) with a strategy pattern that allows to create different types of logs that can be used according to the context.
+
+  - POC Step 2: The next problem to solve is to make this logger agnostic so that it can use different logger implementations, that is why this pattern is used, because it can use the logger implementation of preference by just using and implementing the interface and changing a variable in the `.env` file without having to change anything about the logger in any other file.
+
+  - POC Step 3: The advantages of this approach over the one established in the template are for example that there is a better structured logging that allows the possibility of filtering and the possibility of interchanging logger implementation as preferred without intervening in other parts of the system.
+
+- #### 4- Optional & Mandatory Middleware
+  - POC Step 1: The main problems in this point were implementing middlewares than can be chained up and making these optional or obligatory at election. These problems were solved using the chain of responsibility pattern which, as its name suggests, chains up handlers (in this case middlewares) to perform a specific action and perform a flow of different actions. Part of the solution was also to implement a class where all middlewares that are going to be used can inherit and remain as modular as possible, also to adress the problem of optional and mandatory middlewares the middlewares that are optional have a flag that can be toggled on and off at the time of making the chain to skip the middleware and the mandatory middlewares do not have this option making them always execute (if included in the chain).
+  
+  - POC Step 2: The advantages of the implemented solutions compared to the template are its flexibility where middlwares can be created following a defined structure and easily added or removed from the chain just by using a flag in the handler that will be used, which practically does not need to make changes in other parts of the system.
+
+- #### 5-Repository Layer Improvements
+  - POC Step 1: The main problem in this section was that handlers directly instantiated repositories that mixed business logic with data management, which cannot be done. This was solved by adding a services layer that acts as an intermediary between handlers and repositories, so that the handlers "don't know" about DynamoDB, and the repository is now in a new file that accesses the database and creates three basic functions to peform as an example (one save and two get).
+  
+  - POC Step 2: This approach makes it easy to change database sources, something that was impossible in the template, and as mentioned before, the new layer ensures transparency for the handlers, something that does not exist in the template.
+
+- #### 6- Deployment & Testing 
+  - POC Step 1: The problem referred to in this section is that there was no way to test properly at all, so the solution was to implement unit tests to test the performance of the two handlers and at the same time all the other layers implemented.
+  
+  - POC Step 2:
 
 
 ## Backend Architecture
