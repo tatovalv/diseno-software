@@ -459,6 +459,103 @@ test/ -- Test automation<br>
   
   - POC Step 2:
 
+  Postman Collection:
+  ```
+  {
+  "info": {
+    "name": "Data API Simulation - Fetch & Save",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Fetch Data - Authorized",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer token"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "https://example.com/fetch-data",
+          "protocol": "https",
+          "host": [
+            "example",
+            "com"
+          ],
+          "path": [
+            "fetch-data"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Save Data - Authorized",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer token"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Item\"\n}"
+        },
+        "url": {
+          "raw": "https://example.com/save-data",
+          "protocol": "https",
+          "host": [
+            "example",
+            "com"
+          ],
+          "path": [
+            "save-data"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Save Data - Unauthorized",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Item\"\n}"
+        },
+        "url": {
+          "raw": "https://example.com/save-data",
+          "protocol": "https",
+          "host": [
+            "example",
+            "com"
+          ],
+          "path": [
+            "save-data"
+          ]
+        }
+      }
+    }
+  ]
+}
+  ```
+
 
 ## Backend Architecture
 
