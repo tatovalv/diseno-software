@@ -460,7 +460,7 @@ test/ -- Test automation<br>
   - POC Step 2:
 
   Postman Collection:
-  ```
+```
   {
   "info": {
     "name": "Data API Simulation - Fetch & Save",
@@ -890,3 +890,7 @@ How it supports scalability:
 **Expected Benefits:**
 - **Efficiency**: Normalization and denormalization allow for a data design that optimizes queries and storage based on the type of database.
 - **Clarity**: Separating entities and data objects makes the system clearer and easier to maintain.
+
+
+## Architectural Diagram:
+![imagen](Recursos/ADiagram.jpg)
