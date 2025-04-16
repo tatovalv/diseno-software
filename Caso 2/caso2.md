@@ -457,7 +457,7 @@ test/ -- Test automation<br>
 - #### 6- Deployment & Testing 
   - POC Step 1: The problem referred to in this section is that there was no way to test properly at all, so the solution was to implement unit tests to test the performance of the two handlers and at the same time all the other layers implemented.
   
-  - POC Step 2:
+  - POC Step 2: To finish the testing, the creating of a Postman collection was needeed, the collection below was the one used to finish the testing phase. 
 
   Postman Collection:
 ```
@@ -894,3 +894,58 @@ How it supports scalability:
 
 ## Architectural Diagram:
 ![imagen](Recursos/ADiagram.jpg)
+
+## Architecture Compliance Matrix
+![imagen](Recursos/matrix.jpg)
+<!-- 
+Explanation of the matrix Xs: (no lo voy a incluir pero sirve para clarificar)
+- Scalability (1K→100K users): 
+   Node.js (NestJS) + GraphQL (GraphQL efficiency)
+   PostgreSQL + DynamoDB (RDS auto-scaling)
+   AWS Fargate/Lambda (AWS Fargate/Lambda functioning)
+   AWS Cognito (Cognito pools)
+
+- Security (Encryption, PCI DSS, 2FA):
+   Node.js (NestJS) + GraphQL (NestJS middleware)
+   PostgreSQL + DynamoDB (Encryption at rest)
+   AWS Cognito (2FA/MFA)
+   Twilio/Stripe/Bank APIs (Stripe PCI DSS)
+   AWS Security Tools: WAF, Secrets Manager (WAF, Secrets Manager)
+
+- Performance (<2s response):
+   React Native (Expo) / ReactJS (Optimized UI)
+   Node.js (NestJS) + GraphQL (GraphQL query optimization)
+   PostgreSQL + DynamoDB (Indexed queries)
+   AWS Fargate/Lambda (Lambda cold start)
+
+- Availability (99.9% uptime):
+   Node.js (NestJS) + GraphQL (NestJS clustering)
+   PostgreSQL + DynamoDB (RDS Multi-AZ)
+   AWS Fargate/Lambda (Fargate redundancy)
+   AWS Security Tools: WAF, Secrets Manager (WAF DDoS protection)
+
+- Compatibility (Android/iOS, multi-device):
+   React Native (Expo) / ReactJS (React Native cross-platform)
+
+- Usability (Intuitive UI, multi-language):
+   React Native (Expo) / ReactJS: X (React Native i18n)
+
+- Voice Interaction (NLP): 
+   React Native (Expo) / ReactJS (Voice UI components)
+   Amazon Transcribe/Lex (Transcribe/Lex)
+
+- Payment Execution (Bank APIs): 
+   Node.js (NestJS) + GraphQL (GraphQL mutations)
+   PostgreSQL + DynamoDB (Transaction logs)  
+   AWS Fargate/Lambda (Lambda triggers)
+   Twilio/Stripe/Bank APIs (SINPE/BAC APIs)
+   AWS Security Tools: WAF, Secrets Manager (Secrets for API keys)
+
+- Reminders & Confirmations (SMS/Push):
+   React Native (Expo) / ReactJS (Push notifications)
+   Node.js (NestJS) + GraphQL (GraphQL subscriptions)
+   PostgreSQL + DynamoDB (Schedule tracking)
+   AWS Fargate/Lambda (Lambda schedulers)
+   Twilio/Stripe/Bank APIs (Twilio SMS)
+-->
+
