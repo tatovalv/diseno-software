@@ -380,124 +380,111 @@ main.tsx -- React root<br>
 
 ### Proof of Concepts
 - #### 1- Handler Responsibilities (SOLID & Cohesion Principle)
-  - POC Step 1: The handlers responsibilities need to be clearly defined, so it was decided to create `dataSaveHandler.ts` and `dataFetchHandler.ts` that can access AWS to perform request and test the other sections of the proof of concept (logger, middlewares etc.).
+  - POC Step 1: The handlers responsibilities need to be clearly defined, so it was decided to create `dataSaveHandler.ts` and `dataFetchHandler.ts` that can access AWS to perform request and test the other sections of the proof of concept (logger, middlewares etc.). As many handlers as desired can be created by inheriting from the `BaseHandler` class of `BaseHandler.ts` the two created in this case work only as a test.
   
-  - POC Step 2: As there was no clear difference in the code of the two handlers, it was decided to better distribute the responsibilities in each of them in order to follow the SOLID principle. In addition, other problems were solved, such as the handlers calling directly to the repositories. This was solved by making a better management of the repository creating the *repository* folder and doing all the handling there.  
+  - POC Step 2: As there was no clear difference in the code of the two handlers, it was decided to better distribute the responsibilities in each of them in order to follow the SOLID principle. In addition, other problems were solved, such as the handlers calling directly to the repositories. This was solved by making a better management of the repository creating the `repository` folder and doing all the handling there.  
 
 - #### 3- Logger Improvements (Design Pattern Required)  
-  - POC Step 1: The main problem of the logger was that its functionality was too simple and did not provide more than a message with a timestamp, so it was decided to create a logger that can work for AWS CloudWatch and DataDog(which ensures that the logs are not lost, unlike the `console.log`) with Strategy pattern creating a `LoggerStrategy` interface where the N logger services can inherit and use its implementation, the `Logger' class is the one used for the user where they can select the preferred logger service. The next diagram can be used for better clarification.
+  - POC Step 1: For this item was created a logger that can work for AWS CloudWatch and DataDog with Strategy pattern creating a `LoggerStrategy` interface where the N logger services can inherit and use its implementation, the `Logger' class is the one used for the user where they can select the preferred logger service. The next diagram can be used for better clarification.
   ![imagen](Recursos/loggerDiagram.png)
 
   - POC Step 2: The next problem to solve is to make this logger agnostic so that it can use different logger implementations, that is why this pattern is used, because it can use the logger implementation of preference by just using and implementing the interface and changing a variable in the `.env` file without having to change anything about the logger in any other file.
 
 - #### 4- Optional & Mandatory Middleware
 
-  <!-- - POC Step 1: The main problems in this point were implementing middlewares than can be chained up and making these optional or obligatory at election. These problems were solved using the chain of responsibility pattern which, as its name suggests, chains up handlers (in this case middlewares) to perform a specific action and perform a flow of different actions. Part of the solution was also to implement a class where all middlewares that are going to be used can inherit and remain as modular as possible, also to adress the problem of optional and mandatory middlewares the middlewares that are optional have a flag that can be toggled on and off at the time of making the chain to skip the middleware and the mandatory middlewares do not have this option making them always execute (if included in the chain).
-  
-  - POC Step 2: The advantages of the implemented solutions compared to the template are its flexibility where middlwares can be created following a defined structure and easily added or removed from the chain just by using a flag in the handler that will be used, which practically does not need to make changes in other parts of the system. -->
+  - POC Step 1: This point was solved using the chain of responsibility pattern which, as its name suggests, chains middlewares to perform a specific action and perform a flow of different actions. Thats why it was implemented a interface `Middleware` where all middlewares that are going to be used can inherit and remain as modular as possible, the chain is created in the handlers where these can be mandatory or optional.
 
 - #### 5-Repository Layer Improvements
-  - POC Step 1: The main problem in this section was that handlers directly instantiated repositories that mixed business logic with data management. This was solved by adding a services layer that acts as an intermediary between handlers and repositories, these two services (`dataSaverService` and `dataSaverService`) create a instance of DynamoDB and perform the corresponding save or fetch, also the repository is now in a new file that accesses the database and creates three basic functions to peform as an example (one save and two gets).
+  - POC Step 1: This point is solved by adding a services layer that acts as an intermediary between handlers and repositories, these two services (`dataSaverService` and `dataSaverService`) create a instance of DynamoDB and perform the corresponding save or fetch, also the repository is now in a new file that accesses the database and creates three basic functions to peform as an example (one save and two gets).
   
 - #### 6- Deployment & Testing 
   - POC Step 1: The problem referred to in this section is that there was no way to test properly at all, so the solution was to implement unit tests to test the performance of the system, this is performed by the `dataSaverTest` and `dataFetcher` files that test the handlers with different inputs to verify its behavior  by checking the HTTP status codes.
   
-  - POC Step 2: To finish the testing, the creating of a Postman collection was needeed, the collection below was the one used to finish the testing phase. 
+  - POC Step 2: To finish the testing, the creating of a Postman collection is needeed, use the one below to test the deployment properly. 
 
   Postman Collection:
 ```
   {
-  "info": {
-    "name": "Data API Simulation - Fetch & Save",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Fetch Data - Authorized",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer token"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": {
-          "raw": "https://example.com/fetch-data",
-          "protocol": "https",
-          "host": [
-            "example",
-            "com"
-          ],
-          "path": [
-            "fetch-data"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Save Data - Authorized",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer token"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Test Item\"\n}"
-        },
-        "url": {
-          "raw": "https://example.com/save-data",
-          "protocol": "https",
-          "host": [
-            "example",
-            "com"
-          ],
-          "path": [
-            "save-data"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Save Data - Unauthorized",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Test Item\"\n}"
-        },
-        "url": {
-          "raw": "https://example.com/save-data",
-          "protocol": "https",
-          "host": [
-            "example",
-            "com"
-          ],
-          "path": [
-            "save-data"
-          ]
-        }
-      }
-    }
-  ]
+	"info": {
+		"_postman_id": "ad9a316b-08b5-4716-a97e-3d1f5c9a6e9d",
+		"name": "Serverless API Collection",
+		"description": "Endpoints para GET/POST data",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33704188"
+	},
+	"item": [
+		{
+			"name": "POST Save Data",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					},
+					{
+						"key": "validation",
+						"value": "test_validation_token",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"Test Item\",\n  \"id\": \"123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/data",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"data"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET Fetch Data",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/data",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"data"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://hlhzjzmu0f.execute-api.us-east-1.amazonaws.com/dev"
+		},
+		{
+			"key": "auth_token",
+			"value": "your_jwt_token_here"
+		}
+	]
 }
 ```
 

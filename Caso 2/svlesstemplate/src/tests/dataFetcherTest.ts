@@ -1,7 +1,7 @@
-import { fetchDataHandler } from '../handlers/dataFetchHandler';
+import { DataFetchHandler, fetchDataHandler } from '../handlers/dataFetchHandler';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 
-describe('fetchDataHandler', () => {
+describe('DataFetchHandler', () => {
   it('should fetch data successfully', async () => {
     const event: APIGatewayProxyEvent = {
       queryStringParameters: {},

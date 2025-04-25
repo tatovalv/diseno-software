@@ -89,6 +89,8 @@ This command will package your application and deploy it to AWS, creating the ne
 
 - Another error founded was ocurred in the `serverless.yml` file, this file had `nodejs14.x` in the runtime value, this version was discontinued by AWS in 2023, making an issue in the deployment. This was resolved by changing the version to `nodejs18.x`, a version supported by AWS.
 
+- Another error was found at the time of testing, the requests did not work properly, this was caused by a packaging error, the handlers had to be "read" from the `dist` folder, which is not specified in the `serverless.yml` since the reading was specified in the `src` folder. This error was easy to fix because it was only necessary to change this route in the `serverless.yml`.
+
 ### In the modification of the template
 - There was issues in the error management in the handlers, the declaration of `statusCode` needed other way to make it work properly.
 

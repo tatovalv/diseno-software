@@ -1,7 +1,7 @@
-import { saveDataHandler } from '../handlers/dataSaveHandler';
+import { DataSaveHandler, saveDataHandler} from '../handlers/dataSaveHandler';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 
-describe('saveDataHandler', () => {
+describe('DataSaveHandler', () => {
   it('should save data successfully', async () => {
     const event: APIGatewayProxyEvent = {
       body: JSON.stringify({ name: 'Test Item' }),
