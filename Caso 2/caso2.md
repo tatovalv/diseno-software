@@ -252,10 +252,10 @@ Autheticated API Request
 The application follows an N-layer architecture, where:
 
 - The frontend (React Native/ReactJS) communicates with the backend via GraphQL API.
-- The backend (NestJS + Node.js) serves as the business logic layer, interacting with the database and external banking APIs.
-- The database (PostgreSQL + DynamoDB) stores user payment configurations and transaction logs.
+<!-- - The backend (NestJS + Node.js) serves as the business logic layer, interacting with the database and external banking APIs.
+- The database (PostgreSQL + DynamoDB) stores user payment configurations and transaction logs. -->
 - The authentication layer (Cognito) manages user sessions and authorization.
-- Cloud infrastructure (AWS Fargate, API Gateway, Lambda) ensures scalability and resilience.
+<!-- - Cloud infrastructure (AWS Fargate, API Gateway, Lambda) ensures scalability and resilience. -->
 
 The mobile application is built with React Native (hybrid approach), and the web version is implemented with ReactJS using client-side rendering (CSR). The state is managed using Redux Toolkit, allowing seamless synchronization between different user interactions.
 
@@ -265,12 +265,56 @@ The frontend communicates with backend services via GraphQL APIs, ensuring optim
 
 ##### Patterns & Principles
 
-- SOLID principles: Used in the backend to ensure maintainability and scalability.
-- DRY principle: Applied throughout the codebase to avoid redundancy and improve reusability.
-- Separation of Concerns (SoC): Ensures clear division between frontend, backend, and database logic.
-- Responsive Design: Implemented in the frontend using Tailwind CSS to support various screen sizes.
-- Atomic Design: Used in React components for reusable UI elements.
-- State management with Redux: Ensures efficient data handling and UI updates across all components.
+1. Divide and Conquer
+We break the UI into small, manageable components using Atomic Design:
+- Atoms (inputs, buttons)
+- Molecules (login form, payment card)
+- Organisms (dashboard sections) This makes it easier to develop parts of the UI separately and allows different team members to work on different screens at the same time.
+
+2. Cohesion
+Each React component focuses on one responsibility only:
+- A PaymentHistory component only shows the list of payments.
+- A PaymentForm component only handles setting up a new payment. This makes components easier to understand, update, and test.
+
+3. Reducing Coupling
+Components interact through clearly defined props and events, avoiding hidden dependencies:
+For example, the PaymentForm does not directly modify the app state — it dispatches actions to Redux.
+
+4. Level of Abstraction
+We create clear abstraction layers:
+- UI components (inputs, buttons) are separated from business logic (Redux actions, services).
+- Screens focus only on displaying information and calling actions, without managing how data is fetched or saved.
+
+5. Reusability
+We build generic, reusable components:
+- Buttons, Inputs, Cards can be reused across multiple screens (login, payment, dashboard).
+- Reduces the need to rebuild UI elements for every feature.
+
+6. Flexibility
+Components are designed to be easily extendable:
+For example, the PaymentCard component can easily add new features like showing payment status or actions without breaking the existing layout.
+
+7. Anticipating Obsolescence
+We avoid locking ourselves into one library for critical pieces:
+- Use standard React hooks (useState, useEffect) instead of third-party state managers unless necessary.
+- Stick to TailwindCSS instead of custom styling systems that might become outdated.
+
+8. Portability
+By using ReactJS and React Native, most of our code (especially shared components like buttons and forms) can be adapted between web and mobile apps with minimal changes.
+
+9. SOLID Principles
+- Single Responsibility: Each component or hook does one thing (e.g., useLoginForm handles login form state only).
+- Open/Closed: UI components are extendable by props, not by modifying the component’s internal code.
+- Liskov Substitution: We can replace a Button with a LinkButton or SubmitButton without breaking the layout.
+- Interface Segregation: Components receive only the props they need, no bloated prop passing.
+- Dependency Inversion: Components don’t directly fetch data; they call abstracted Redux actions or services instead.
+
+10. DRY 
+We centralize shared code:
+- Styles are reused in Tailwind classes.
+- Validation logic (e.g., “isEmailValid”) is reused across registration, login, and payment forms.
+- Redux slices group related logic together to avoid duplicating actions and reducers.
+
 
 ##### Toolkits and Standards
 - AWS Amplify UI components: For authentication screens and easy Cognito integration.
@@ -284,7 +328,7 @@ The frontend communicates with backend services via GraphQL APIs, ensuring optim
 The application follows object-oriented design patterns such as:
 
 - Factory Pattern: Used in the backend to create instances of payment services dynamically, ensuring modularity.
-- Singleton Pattern: Manages authentication state across different components to prevent unnecessary re-initialization.
+<!-- - Singleton Pattern: Manages authentication state across different components to prevent unnecessary re-initialization. -->
 - Observer Pattern: Enables real-time updates for notifications and payment statuses through WebSockets.    
 - Adapter Pattern: Standardizes API responses from different banks to maintain consistency and ensure compatibility.
 - Strategy Pattern: Used in payment processing to handle different payment methods dynamically (e.g., card, bank transfer, digital wallet).
@@ -522,9 +566,17 @@ Microservices are great for big companies with large teams working on different 
 Since we’re starting with a smaller team and a single product, it makes more sense to keep things together in one codebase, but organized by logical services. That way, we get the benefits of clear structure without the extra cost and difficulty of microservices.
 
 4. Event-Driven, Queues, Brokers, Producer/Consumer, Pub/Sub?
- Our system includes some parts that work best using an event-driven architecture, along with queues and Pub/Sub messaging patterns. This allows different parts of our app to react to events without being tightly connected.
+ - PaymentSuccessPublisher:	Publishes an event when a payment is completed successfully.
+ - PaymentFailurePublisher:	Publishes an event when a payment fails.
+ - ReminderScheduler:	Sends a scheduled reminder event for upcoming payments.
+ - NotificationDispatcher: Listens for events and sends SMS or push notifications.
+ - VoiceCommandEventHandler: Handles events generated from voice command inputs.
+ - TransactionRetryHandler:	Listens for failed payments and retries them automatically.
 
-We’re using an event-driven design for key features like payments, voice commands, and reminders. We use SQS for queues, SNS for Pub/Sub messaging, and Lambda to react to events. Our code handles this through cleanly separated integration classes that keep everything modular and scalable.
+ 
+ <!-- Our system includes some parts that work best using an event-driven architecture, along with queues and Pub/Sub messaging patterns. This allows different parts of our app to react to events without being tightly connected.
+
+We’re using an event-driven design for key features like payments, voice commands, and reminders. We use SQS for queues, SNS for Pub/Sub messaging, and Lambda to react to events. Our code handles this through cleanly separated integration classes that keep everything modular and scalable. -->
 
 
 
