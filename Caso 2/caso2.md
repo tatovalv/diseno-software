@@ -414,7 +414,7 @@ main.tsx -- React root<br>
 #### packages/ -- Shared FE logic and components (if exists)
 
 ### Final FE architecture diagram
-![imagen](Recursos/FEF.jpg)
+![imagen](Recursos/FEV3.jpg)
 
 
 #### Class Diagram
@@ -598,282 +598,306 @@ How it supports scalability:
 
 ## a) Data Topology:
 
-**Cloud Service Technology:**
-- **AWS RDS (PostgreSQL)** for OLTP and **DynamoDB** for NoSQL. We use AWS for its scalability, high availability, and geographic replication.
+Our system will use two databases: PostgreSQL (relational) via Amazon RDS, to store payment configurations, user data, and transactions; and DynamoDB (distributed NoSQL) to store event logs such as payments, access attempts, and voice commands.
 
-**Object-Oriented Design Patterns:**
-- **Singleton Pattern**: To manage database connections, ensuring there is a single active instance for the entire system.
-- **Factory Pattern**: To create database service instances, allowing the choice between different database providers (relational or NoSQL).
+PostgreSQL will operate as an OLTP system, using a master/replica architecture to separate reads and writes. DynamoDB, on the other hand, offers automatic replication and distribution across AWS nodes by design.
 
-**Class Layers for Data Access:**
-- **DataAccessLayer**: Layer responsible for managing data access.
-- **DBConnection**: Layer that handles the database connection, maintaining credentials and configurations.
-- **TransactionManager**: Responsible for managing transactions in the databases.
+**Benefits:**
 
-**Configuration Policies/Rules:**
-- **Connection Pooling**: Configuration of AWS RDS Connection Pooling to optimize the use of database connections.
-- **Data Replication**: Data replication policies in RDS to ensure availability and fault recovery.
+-Automatic scalability without manual configuration.
 
-**Expected Benefits:**
-- **Scalability**: With AWS RDS and DynamoDB, the architecture can scale horizontally without manual intervention.
-- **High availability**: Geographical replication and fault recovery policies ensure continuous data availability.
+-Robust security through VPC, AWS Secrets Manager, and WAF.
 
----
+-Controlled cost by leveraging managed services and pay-per-use models.
 
 ## b) Big Data Repositories:
 
-**Cloud Service Technology:**
-- **AWS S3**: For storing large volumes of unstructured data.
-- **AWS Glue**: For transforming and processing large volumes of data.
+The system incorporates a data lake based on Amazon S3, where logs, historical records, and voice files are stored—sourced from DynamoDB, RDS, and AI services.
 
-**Object-Oriented Design Patterns:**
-- **Factory Pattern**: To create adapters for connecting to different Big Data repositories (S3, DynamoDB, etc.).
-- **Composite Pattern**: To organize data hierarchically (e.g., voice logs or transactional data).
+The architecture is designed to support future integration with tools such as Amazon Athena or Redshift Spectrum, enabling SQL-based analytics directly on the stored data.
 
-**Class Layers for Data Access:**
-- **DataLakeRepository**: Layer that manages access to Big Data repositories like S3.
-- **BigDataProcessor**: Layer responsible for processing large volumes of data, such as voice logs or transactions.
+**Cloud service technology:**
+- Amazon S3 serves as the central data lake repository, fully integrated within the AWS ecosystem.
 
-**Configuration Policies/Rules:**
-- **Data Partitioning**: Use of partitions in S3 to distribute large volumes of data across multiple buckets to avoid performance issues.
-- **Data Processing**: Define processing policies using AWS Glue to handle and transform data.
+**Configuration policies/rules:**
+- Data in S3 will be organized using timestamped folders or partitions, and lifecycle policies will be applied to manage archiving and automatic cleanup.
 
-**Expected Benefits:**
-- **Data management efficiency**: Using AWS Glue enables scalable and cost-effective processing of large data volumes.
-- **Optimized costs**: By using S3 and Glue, data storage and processing can be done at a fraction of the cost compared to traditional storage and processing solutions.
+**Expected benefits:**
 
----
+-Provides a strong foundation for data science adoption without rearchitecting the system.
+
+-Clean separation between operational and analytical data.
+
+-Compatibility with analytical tools like Power BI, Athena, and Amazon SageMaker.
+
 
 ## c) Relational Database vs NoSQL:
 
-**Cloud Service Technology:**
-- **AWS RDS (PostgreSQL)**: Relational database.
-- **DynamoDB**: NoSQL database for unstructured data and high scalability.
+Yes, both relational and NoSQL engines are used.
 
-**Object-Oriented Design Patterns:**
-- **Adapter Pattern**: To create a layer that adapts operations between relational databases (RDS) and NoSQL (DynamoDB).
-- **Proxy Pattern**: To control access to databases and add functionalities like caching and access control without modifying business logic.
+-PostgreSQL (relational) via Amazon RDS
 
-**Class Layers for Data Access:**
-- **RelationalDBAdapter**: Layer that abstracts SQL operations in PostgreSQL.
-- **NoSQLDBAdapter**: Layer that abstracts operations in DynamoDB, providing a common interface.
-- **DataMapper**: Maps business objects to data stored in databases.
-
-**Configuration Policies/Rules:**
-- **Transaction Management**: Policy for securely managing transactions in PostgreSQL, while using DynamoDB's transaction system for NoSQL.
-- **Indexing**: Create efficient indexes in both databases to optimize queries.
-
-**Expected Benefits:**
-- **Flexibility**: Both structured and unstructured data can be managed using the appropriate technologies for each data type.
-- **Optimized Queries**: The use of indexes in PostgreSQL and DynamoDB ensures that queries are fast and efficient, regardless of the database type.
-
----
+-DynamoDB (NoSQL document)
 
 ## d) Data Tenancy and Access Permissions:
 
-**Cloud Service Technology:**
-- **AWS Cognito**: To manage user authentication and authorization.
-- **AWS IAM**: To manage permissions and access policies for data.
+The system enforces secure data access through a layered architecture that ensures logical isolation, strict permissions, and full encryption:
 
-**Object-Oriented Design Patterns:**
-- **Strategy Pattern**: To implement different authentication strategies based on the user type (e.g., admin users, standard users).
-- **Decorator Pattern**: To add security functionalities to business entities without modifying their internal structure.
+All access to databases (PostgreSQL and DynamoDB) is routed exclusively through backend services running on AWS Fargate or AWS Lambda, both within a private VPC.
+Security Groups and whitelist rules restrict direct access to databases, allowing only internal AWS resources to connect.
 
-**Class Layers for Data Access:**
-- **AuthenticationManager**: Layer responsible for managing authentication via AWS Cognito.
-- **PermissionManager**: Layer responsible for managing data access permissions using AWS IAM.
+AWS Secrets Manager is used to securely manage database credentials, preventing exposure in environment files or source code.
 
-**Configuration Policies/Rules:**
-- **Role-Based Access Control (RBAC)**: Define roles and permissions in AWS IAM to control access to sensitive functions and data.
-- **Multi-Factor Authentication (MFA)**: Configure MFA in AWS Cognito for an additional layer of security.
+Encryption is enabled both in transit (TLS) and at rest, in compliance with financial security standards such as PCI DSS, which the project aims to meet as it handles sensitive banking and payment data.
 
-**Expected Benefits:**
-- **Security**: AWS Cognito ensures that only authorized users can access sensitive resources.
-- **Scalability in Security**: AWS IAM allows dynamic scaling of permissions according to business needs.
+**Cloud service technology:**
+- The architecture uses AWS-native services like VPC, IAM, WAF, Secrets Manager, and Cognito to enforce access control, identity verification, and data security at multiple layers.
 
----
+**Configuration policies/rules:**
+- The backend enforces data access through a centralized Service Layer, ensuring no direct access to databases from outside modules.
+
+- Responsibility is separated in code, with all database interactions encapsulated in controlled modules—creating a foundation for future multi-tenancy, if needed.
+
+**Expected benefits:**
+- Security by design, with tightly scoped permissions, encrypted access, and logical data segmentation.
+
+- Full observability, with audit trails and performance monitoring through AWS CloudWatch and X-Ray.
 
 ## e) Fault Recovery and Resilience:
+In terms of recovery and tolerance, the system uses services that are very favorable to the topic such as:
+Amazon RDS that with its Multi-AZ configuration allows us automatic recovery.
+- DynamoDB guarantees availability since it is distributed and replicated automatically.
+- Lambda and Fargate are also used, which offer automatic restart in case of failures.
 
-**Cloud Service Technology:**
-- **AWS Aurora**: Relational database with high availability and automatic recovery.
-- **AWS Lambda**: Serverless functions to handle processes in case of failures.
+**Configuration policies/rules:**
+- Automatic snapshots are configured in Amazon RDS for database restoration.
 
-**Object-Oriented Design Patterns:**
-- **Observer Pattern**: To monitor the system's state and trigger recovery processes automatically when a failure is detected.
-- **Command Pattern**: To manage operations that need to be executed, rolled back, or retried in case of failures.
+- Configuration backups and logs are stored in Amazon S3, with retention and archiving policies.
 
-**Class Layers for Data Access:**
-- **RecoveryManager**: Layer responsible for recovery from failures and managing backups.
-- **ErrorHandler**: Layer responsible for handling system errors and managing retry logic.
+- CloudWatch Alarms and AWS X-Ray are used to detect outages, performance degradation or unexpected errors.
 
-**Configuration Policies/Rules:**
-- **Failover Policies**: Configure automatic failover policies in AWS Aurora to ensure service continuity in case of database instance failure.
-- **Backup & Restore**: Configure automatic daily backups in AWS Aurora and DynamoDB.
+- In the payment flow, error handling and controlled retries are incorporated, notifying the user in case of failure and allowing them to decide whether to retry.
 
-**Expected Benefits:**
-- **High availability**: The AWS Aurora architecture ensures that the database recovers quickly in case of a failure.
-- **Efficient recovery**: AWS Lambda functions allow for fast and automatic fault recovery, enhancing the system's resilience.
+**Expected benefits:**
+- Rapid recovery from incidents without data loss.
 
----
+- Continuous high availability, even in the event of infrastructure failure.
+
+- Stable end-user experience, with early error detection and fallback paths.
+
+- Cost-optimized by using serverless services with integrated self-recovery.
+
+# de diseno orientado a objetos - programación
 
 ## a) Transactional via Statements or Stored Procedures:
 
-**Cloud Service Technology:**
+Transactions are managed via statements sent from the backend.
 
-- **AWS RDS (PostgreSQL)**: We use Stored Procedures to handle complex transactional operations efficiently and ensure transactions are atomic.
-- **DynamoDB**: Uses DynamoDB Transactions to guarantee consistency of transactions in NoSQL data.
+**Cloud service technology:**
+- The primary database is Amazon RDS (PostgreSQL), accessed through dynamic queries from backend services running on AWS Fargate or Lambda, developed using NestJS + Node.js.
+
+**Class layers for data access:**
+- Data access is organized into a Repository layer, which executes SQL statements using TypeORM.
+
+- Transaction logic (BEGIN, COMMIT, ROLLBACK) is handled within the backend service layer, which allows the integration of more flexible and decoupled business rules.
+
+**Configuration policies/rules:**
+- Manual error-handling strategies and validations are applied before each commit.
+
+- In case of failures during processing, the backend can execute a manual rollback to ensure data consistency.
+
+**Expected benefits:**
+- Flexibility to evolve business logic without relying on database-side changes.
+
+- Portability of the backend to other databases or cloud services.
+
+- Scalability, as the database is not burdened with internal logic or complex procedures.
+
+## b) uso de ORM
+b) Use of ORM (Object-Relational Mapping)
+The system uses an ORM (Object-Relational Mapping) to interact with the PostgreSQL
+
+DynamoDB (NoSQL) is handled separately using the AWS SDK.
 
 **Object-Oriented Design Patterns:**
-- **Command Pattern**: Used to encapsulate database operations into objects that can be executed, rolled back, or retried.
-- **Transaction Script Pattern**: Used to handle transactions via stored procedures encapsulating business logic.
+- Data Mapper Pattern: Used to decouple business logic from the persistence layer, ensuring domain objects remain independent of the database logic.
+
+- Repository Pattern: Used to encapsulate CRUD operations and reusable queries, making the codebase cleaner, more testable, and easier to maintain.
 
 **Class Layers for Data Access:**
-- **TransactionManager**: Layer that manages transactions, executing Stored Procedures in relational databases and controlling transactions in DynamoDB.
-- **QueryExecutor**: Layer responsible for executing SQL statements or queries in DynamoDB.
+- Entity: Defines the structure of data models mapped to PostgreSQL tables.
+
+- Repository Layer: Encapsulates operations on those entities using methods like .find(), .save(), or .delete().
+
+- Service Layer: Manages business logic and coordinates interactions between multiple repositories, often within transactions.
 
 **Configuration Policies/Rules:**
-- **Transaction Handling**: Ensure transactions are managed consistently via Stored Procedures or DynamoDB Transactions.
-- **Isolation Levels**: Configure appropriate isolation levels in relational databases (e.g., READ COMMITTED, SERIALIZABLE) to handle concurrency and locking.
+- Entity Mapping: Classes are annotated with TypeORM decorators to define their relationship with database tables.
+
+- Validation: Validation rules are applied before persisting data, using libraries such as class-validator with DTOs.
+
+- Transaction Control: Critical operations are executed inside transactions using TypeORM’s QueryRunner to ensure atomicity and consistency.
 
 **Expected Benefits:**
-- **Efficiency**: Using Stored Procedures allows complex operations to be handled efficiently directly in the database, reducing application overhead.
-- **Consistency**: Transactions are handled reliably, preventing data inconsistencies in the system.
+- Decoupling: Keeps business logic independent from database operations, making the system easier to scale and maintain.
 
----
+- Developer Productivity: ORM reduces repetitive SQL code and simplifies access to complex relationships between entities.
 
-## b) Use of ORM (Object-Relational Mapping):
-
-**Cloud Service Technology:**
-- **TypeORM** or **Sequelize (PostgreSQL)** for interacting with relational databases.
-- **DynamoDB SDK** for interacting with NoSQL databases.
-
-**Object-Oriented Design Patterns:**
-- **Data Mapper Pattern**: Used to map domain objects to databases, decoupling business logic from the persistence layer.
-- **Active Record Pattern**: Used in some ORMs like Sequelize, where domain objects have their own data access logic.
-
-**Class Layers for Data Access:**
-- **EntityManager**: Layer that manages ORM entities and their persistence in the databases.
-- **Repository**: Layer that abstracts CRUD operations and specific queries, interacting with entities.
-- **Model**: Defines entities and their structure in the database.
-
-**Configuration Policies/Rules:**
-- **Entity Mappings**: Configuration of mappings between database tables and domain object classes.
-- **Validation Rules**: Define validation rules to ensure that entered data is consistent and correct before persistence.
-
-**Expected Benefits:**
-- **Abstraction**: Using ORM allows business logic to be decoupled from database interaction, making code cleaner and more maintainable.
-- **Development Ease**: ORM simplifies data access operations by automatically generating the corresponding SQL queries.
-
----
+- Data Integrity: Transaction management from the backend ensures consistent and reliable operations, even during failures.
 
 ## c) Layers for Connection Control, Concurrency, Mapping Data to Objects and Vice Versa:
+Cloud Service Technology (Precise):
+PostgreSQL on Amazon RDS:
 
-**Cloud Service Technology:**
-- **AWS RDS Connection Pooling** to manage multiple database connections without creating new instances for each request.
-- **DynamoDB Auto-Scaling** to handle concurrency without manual intervention.
+Connection pooling is managed using pg-pool, internally through TypeORM's DataSource class.
+
+**Pool settings:**
+
+- max: 10 (maximum 10 active connections per instance)
+
+- min: 2 (minimum 2 idle connections kept alive)
+
+- idleTimeoutMillis: 30000 (idle connection closed after 30 seconds)
 
 **Object-Oriented Design Patterns:**
-- **Proxy Pattern**: To control access to database connections and apply layers of security and optimization.
-- **Observer Pattern**: Used to handle concurrency events, notifying interested layers about changes in data.
+- Proxy Pattern: We use  a ConnectionManager to act as a single point to distribute pooled connections across services
 
-**Class Layers for Data Access:**
-- **ConnectionPool**: Layer responsible for managing connection pooling to the database, reusing existing connections.
-- **DataMapper**: Layer that converts data between the database format and domain object format.
-- **ConcurrencyManager**: Layer responsible for managing concurrency conflicts and ensuring data consistency in multi-user systems.
+- Data Mapper Pattern: Maps database rows into TypeScript class instances without embedding SQL inside business logic.
 
-**Configuration Policies/Rules:**
-- **Connection Pool Size**: Configure the number of active connections in the pool, optimizing resource usage.
-- **Concurrency Control**: Define concurrency control models, such as optimistic or pessimistic locking, depending on system needs.
+- Unit of Work Pattern (via TypeORM Transaction Management):
+
+We are going to use TypeORM’s QueryRunner.
+
+How used:
+
+Transactions are manually started in services like PaymentService and SubscriptionService when multiple operations must happen atomically.
+
+- PaymentService: To create payments and log events together.
+
+- SubscriptionService: To activate/deactivate subscriptions and record actions.
+
+**Class Layers for Data Access (Precise):**
+
+- ConnectionManager: Manages PostgreSQL connections using TypeORM’s DataSource class and pools configured as above.
+  
+- Repository Layer: Handles find, save, update, delete methods using TypeORM.
+  
+- Entity Layer: Defines our database schemas with decorators like @Entity, @PrimaryGeneratedColumn, @Column.
+
+- DTO Layer: CreatePaymentDTO, UpdateUserDTO, SubscribePlanDTO. Applies validation using class-validator.
+
+
+**Configuration Policies/Rules (Precise):**
+
+Transaction Control Configuration (TypeORM QueryRunner):
+
+- Transactions are manually handled in critical services (Payment and Subscription).
+
+- Need to guarantee atomicity (e.g., create a payment + insert a log).
+
+Entity Mapping Rules:
+
+- Each database table corresponds 1-to-1 with an Entity.
+
+- Entities are decorated with @Entity(), @PrimaryGeneratedColumn(), and @Column().
+
+DTO Mapping and Validation:
+
+- DTOs validated with class-validator before mapping into Entities.
+
 
 **Expected Benefits:**
-- **Connection Management Efficiency**: Connection pooling improves performance by avoiding repeated creation of new connections.
-- **Concurrency Management**: Ensures that multiple users can interact with the database without data conflicts.
+- Efficient connection reuse: Avoids bottlenecks by reusing 10 pooled connections per backend instance.
 
----
+- Transactional integrity: Payment and subscription processes are atomic; either all changes happen or none do.
+
+- Clear separation of concerns: DTOs validate input/output, Entities handle persistence, and Services orchestrate logic.
+
+- High maintainability: Changes in data structure or connection management only affect one layer, not the whole app.
 
 ## d) Use of Connection Pooling:
-
-**Cloud Service Technology:**
-- **AWS RDS Connection Pooling** with pg-pool for PostgreSQL and **DynamoDB Connection Pooling** for NoSQL.
-
-**Object-Oriented Design Patterns:**
-- **Singleton Pattern**: To ensure there is only one instance of the connection pool for the entire application.
+Connection pooling ensures that database connections are efficiently managed to support serverless deployments without overloading PostgreSQL.
 
 **Class Layers for Data Access:**
-- **ConnectionPoolManager**: Layer responsible for managing the connection pool and distributing connections as needed.
+- ConnectionManager centralizes connection pooling via TypeORM’s DataSource.
+
+- Repositories like UserRepository and PaymentRepository use the pool to access the database.
+
+**Object-Oriented Design Patterns:**
+- Singleton Pattern guarantees a single instance of the connection pool shared across services.
 
 **Configuration Policies/Rules:**
-- **Maximum Connections**: Configure the maximum number of connections allowed in the pool.
-- **Timeouts**: Configure the wait times for obtaining a connection from the pool.
+- Pool settings: max: 10, min: 2, idleTimeoutMillis: 30000.
 
 **Expected Benefits:**
-- **Improved Performance**: Connection pooling reduces database overhead by reusing existing connections instead of creating new ones constantly.
-- **Reduced Latency**: Connections are managed efficiently, reducing the wait time for establishing new connections.
+- Connection reuse minimizes resource overhead.
 
----
+- Improves backend scalability and performance under load.
 
 ## e) Use of Cache:
-
-**Cloud Service Technology:**
-- **AWS ElastiCache** (Redis or Memcached) for caching frequent data and expensive queries.
-
-**Object-Oriented Design Patterns:**
-- **Cache-Aside Pattern**: Where the application handles loading and updating the cache manually, while the database is the source of truth.
+Caching is introduced to improve read-heavy operations and reduce pressure on PostgreSQL by serving frequently accessed data through Redis.
 
 **Class Layers for Data Access:**
-- **CacheManager**: Layer responsible for storing and retrieving data from the cache.
+- CacheManager handles Redis interactions (get/set).
+
+- Services query the cache before falling back to PostgreSQL.
+
+**Object-Oriented Design Patterns:**
+- Cache-Aside Pattern loads missing cache data dynamically from the database.
 
 **Configuration Policies/Rules:**
-- **Cache Expiry**: Define an expiration time for cached data to avoid using outdated data.
-- **Cache Invalidation**: Policies to invalidate or update the cache when underlying data changes.
+- Cache TTL set at 300 seconds.
+
+- Keys are formatted by resource type, e.g., payment:{paymentId}.
 
 **Expected Benefits:**
-- **Performance Improvement**: Caching reduces the load on the database by storing frequent query results in memory.
-- **Scalability**: Caching reduces the need to access the database, allowing the system to handle more traffic.
+- Reduced database query volume.
 
----
+- Faster response times for users accessing frequently requested information.
 
 ## f) Native and Interpreted Drivers:
-
-**Cloud Service Technology:**
-- **AWS SDK**: Used to interact with databases like DynamoDB and RDS, providing native access to AWS services.
-
-**Object-Oriented Design Patterns:**
-- **Adapter Pattern**: To adapt different types of native and interpreted drivers depending on the database used.
+Database interactions are optimized using native drivers for PostgreSQL and DynamoDB, abstracted to ensure flexibility without exposing service logic to driver-specific implementations.
 
 **Class Layers for Data Access:**
-- **DriverManager**: Layer responsible for managing native and interpreted drivers to interact with the database.
+- PostgresAdapter connects through the native pg driver via TypeORM.
+
+- DynamoDBAdapter uses the AWS SDK v3 for DynamoDB access.
+
+**Object-Oriented Design Patterns:**
+- Adapter Pattern ensures consistent database interactions regardless of the underlying driver.
 
 **Configuration Policies/Rules:**
-- **Driver Configuration**: Configuring connection parameters such as timeout and authentication for native and interpreted drivers.
+- Retry policies set in the DynamoDB adapter with exponential backoff for resilience.
+
+- Connection parameters defined for PostgreSQL adapters.
 
 **Expected Benefits:**
-- **Flexibility**: Native drivers provide faster access to the database, while interpreted drivers allow greater flexibility with various database systems.
-- **Compatibility**: Using patterns like Adapter allows for easier integration with multiple database systems.
+- Easy driver management.
 
----
+- Robustness against transient failures and backend flexibility.
 
 ## g) Data Design:
-
-**Cloud Service Technology:**
-- **AWS DynamoDB** for NoSQL storage and **AWS RDS (PostgreSQL)** for relational storage.
-
-**Object-Oriented Design Patterns:**
-- **Composite Pattern**: For handling hierarchical data such as transactions and users in an organized structure.
-- **Entity-Component-System (ECS)**: For designing complex entities with reusable components and systems that process them.
+Our data model separates structured and unstructured data across PostgreSQL and DynamoDB, applying relational and NoSQL best practices to optimize performance and scalability.
 
 **Class Layers for Data Access:**
-- **Entity**: Represents business entities like User, Transaction, Payment.
-- **DataObject**: Defines the data for each entity, such as the structure of database tables.
+- Entities (UserEntity, PaymentEntity, SubscriptionEntity) define relational structures.
+
+- DTOs (CreatePaymentDTO, SubscribePlanDTO) manage API data input/output.
+
+**Object-Oriented Design Patterns:**
+- Composite Pattern models relationships such as users linked to multiple payments and subscriptions.
+
+- ECS (Entity-Component-System) organizes logs and events in DynamoDB.
 
 **Configuration Policies/Rules:**
-- **Normalization**: Normalization policies to reduce data redundancy in relational databases.
-- **Data Denormalization**: Use of denormalization in NoSQL databases to optimize queries and performance.
+- PostgreSQL tables normalized up to 3NF for data consistency.
+
+- DynamoDB collections denormalized for optimized single-read access (partition key: userId, sort key: timestamp).
 
 **Expected Benefits:**
-- **Efficiency**: Normalization and denormalization allow for a data design that optimizes queries and storage based on the type of database.
-- **Clarity**: Separating entities and data objects makes the system clearer and easier to maintain.
+- Efficient database operations tailored for relational and event-driven data.
+
+- Scalable architecture ready to support high transaction volumes.
 
 
 ## Architectural Diagram:
