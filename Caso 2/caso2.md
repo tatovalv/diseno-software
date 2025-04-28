@@ -414,7 +414,7 @@ main.tsx -- React root<br>
 #### packages/ -- Shared FE logic and components (if exists)
 
 ### Final FE architecture diagram
-![imagen](Recursos/FEV3.jpg)
+![imagen](Recursos/FrontEnd-architecture.png)
 
 
 #### Class Diagram
@@ -687,7 +687,6 @@ Amazon RDS that with its Multi-AZ configuration allows us automatic recovery.
 
 - Cost-optimized by using serverless services with integrated self-recovery.
 
-# de diseno orientado a objetos - programación
 
 ## a) Transactional via Statements or Stored Procedures:
 
@@ -901,7 +900,7 @@ Our data model separates structured and unstructured data across PostgreSQL and 
 
 
 ## Architectural Diagram:
-![imagen](Recursos/ADiagram.jpg)
+![imagen](Recursos/FullArchitecture.png)
 
 ## Architecture Compliance Matrix
 ![imagen](Recursos/matrix.jpg)
