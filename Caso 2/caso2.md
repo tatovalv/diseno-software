@@ -602,6 +602,10 @@ Our system will use two databases: PostgreSQL (relational) via Amazon RDS, to st
 
 PostgreSQL will operate as an OLTP system, using a master/replica architecture to separate reads and writes. DynamoDB, on the other hand, offers automatic replication and distribution across AWS nodes by design.
 
+Additionally:
+
+Amazon S3 will be used to store historical logs and voice files, organized into timestamped folders (YYYY/MM/DD). A formal Data Lake will not be implemented, only storage for future analysis.
+
 **Benefits:**
 
 -Automatic scalability without manual configuration.
@@ -612,23 +616,23 @@ PostgreSQL will operate as an OLTP system, using a master/replica architecture t
 
 ## b) Big Data Repositories:
 
-The system incorporates a data lake based on Amazon S3, where logs, historical records, and voice files are stored—sourced from DynamoDB, RDS, and AI services.
-
-The architecture is designed to support future integration with tools such as Amazon Athena or Redshift Spectrum, enabling SQL-based analytics directly on the stored data.
+Although a formal Data Lake will not be established, Amazon S3 will be used to store historical data sourced from RDS, DynamoDB, and AI services like Amazon Transcribe.
 
 **Cloud service technology:**
-- Amazon S3 serves as the central data lake repository, fully integrated within the AWS ecosystem.
+
+Amazon S3 as the central storage repository for historical logs and voice files.
 
 **Configuration policies/rules:**
-- Data in S3 will be organized using timestamped folders or partitions, and lifecycle policies will be applied to manage archiving and automatic cleanup.
+
+Organization of objects in S3 using date-based prefixes.
+
+Lifecycle policies configured to archive data to Glacier after 90 days and delete old versions after 365 days.
 
 **Expected benefits:**
 
--Provides a strong foundation for data science adoption without rearchitecting the system.
+Long-term storage cost reduction.
 
--Clean separation between operational and analytical data.
-
--Compatibility with analytical tools like Power BI, Athena, and Amazon SageMaker.
+Support for ad-hoc analysis of historical data using tools like Athena or Redshift Spectrum.
 
 
 ## c) Relational Database vs NoSQL:
@@ -641,31 +645,36 @@ Yes, both relational and NoSQL engines are used.
 
 ## d) Data Tenancy and Access Permissions:
 
-The system enforces secure data access through a layered architecture that ensures logical isolation, strict permissions, and full encryption:
+A physical multitenancy model will not be implemented at this stage.
 
-All access to databases (PostgreSQL and DynamoDB) is routed exclusively through backend services running on AWS Fargate or AWS Lambda, both within a private VPC.
-Security Groups and whitelist rules restrict direct access to databases, allowing only internal AWS resources to connect.
-
-AWS Secrets Manager is used to securely manage database credentials, preventing exposure in environment files or source code.
-
-Encryption is enabled both in transit (TLS) and at rest, in compliance with financial security standards such as PCI DSS, which the project aims to meet as it handles sensitive banking and payment data.
-
-**Cloud service technology:**
-- The architecture uses AWS-native services like VPC, IAM, WAF, Secrets Manager, and Cognito to enforce access control, identity verification, and data security at multiple layers.
+Data separation will be logical, using a Tenant ID or User ID in all relevant tables.
 
 **Configuration policies/rules:**
-- The backend enforces data access through a centralized Service Layer, ensuring no direct access to databases from outside modules.
+Security policies:
 
-- Responsibility is separated in code, with all database interactions encapsulated in controlled modules—creating a foundation for future multi-tenancy, if needed.
+- All database connections restricted to backend services inside a private VPC.
+
+- Use of AWS IAM, WAF, and AWS Secrets Manager for secure access and credential management.
+
+- Security is reinforced both at the network access level and identity management level, but data separation is logical.
+
+Encryption (data-level):
+
+- Encryption of sensitive data in PostgreSQL using column-level encryption on critical fields like passwords and sensitive identifiers.
+
+- DynamoDB applies Server-Side Encryption (SSE) by default.
 
 **Expected benefits:**
-- Security by design, with tightly scoped permissions, encrypted access, and logical data segmentation.
+- Logical isolation of user data.
 
-- Full observability, with audit trails and performance monitoring through AWS CloudWatch and X-Ray.
+- Strict control over read/write access.
+
+- Compliance assurance with standards like PCI DSS and GDPR.
 
 ## e) Fault Recovery and Resilience:
 In terms of recovery and tolerance, the system uses services that are very favorable to the topic such as:
-Amazon RDS that with its Multi-AZ configuration allows us automatic recovery.
+- Amazon RDS that with its Multi-AZ configuration allows us automatic recovery, Daily automatic backups with 7-day retention and Weekly manual snapshots scheduled.
+
 - DynamoDB guarantees availability since it is distributed and replicated automatically.
 - Lambda and Fargate are also used, which offer automatic restart in case of failures.
 
@@ -679,49 +688,44 @@ Amazon RDS that with its Multi-AZ configuration allows us automatic recovery.
 - In the payment flow, error handling and controlled retries are incorporated, notifying the user in case of failure and allowing them to decide whether to retry.
 
 **Expected benefits:**
-- Rapid recovery from incidents without data loss.
+- Transaction-level data recovery in case of incidents.
 
-- Continuous high availability, even in the event of infrastructure failure.
+- Minimal recovery time without manual intervention.
 
-- Stable end-user experience, with early error detection and fallback paths.
-
-- Cost-optimized by using serverless services with integrated self-recovery.
+- Continuous availability and tolerance to availability zone failures.
 
 
 ## a) Transactional via Statements or Stored Procedures:
 
-Transactions are managed via statements sent from the backend.
+Transactions are managed at the backend using dynamic SQL statements controlled through TypeORM.
 
 **Cloud service technology:**
-- The primary database is Amazon RDS (PostgreSQL), accessed through dynamic queries from backend services running on AWS Fargate or Lambda, developed using NestJS + Node.js.
+-Amazon RDS Aurora PostgreSQL accessed via dynamic queries from the backend.
 
 **Class layers for data access:**
-- Data access is organized into a Repository layer, which executes SQL statements using TypeORM.
+- Entity Layer: Defines table-to-class mappings.
 
-- Transaction logic (BEGIN, COMMIT, ROLLBACK) is handled within the backend service layer, which allows the integration of more flexible and decoupled business rules.
+- Repository Layer: Encapsulates queries and CRUD operations.
+
+- Service Layer: Manages business logic and transaction flow (BEGIN/COMMIT/ROLLBACK).
 
 **Configuration policies/rules:**
-- Manual error-handling strategies and validations are applied before each commit.
+- Explicit transaction handling using TypeORM's QueryRunner for critical operations (payments, subscriptions).
 
-- In case of failures during processing, the backend can execute a manual rollback to ensure data consistency.
+- Manual validations before commits to ensure data integrity.
 
 **Expected benefits:**
-- Flexibility to evolve business logic without relying on database-side changes.
+- Flexibility to adapt business logic without relying on stored procedures.
 
-- Portability of the backend to other databases or cloud services.
-
-- Scalability, as the database is not burdened with internal logic or complex procedures.
+- Portable, decoupled code independent from a specific database engine
 
 ## b) uso de ORM
-b) Use of ORM (Object-Relational Mapping)
-The system uses an ORM (Object-Relational Mapping) to interact with the PostgreSQL
-
-DynamoDB (NoSQL) is handled separately using the AWS SDK.
+An ORM (TypeORM) will be used for PostgreSQL, complemented by dynamic SQL queries when necessary.
 
 **Object-Oriented Design Patterns:**
-- Data Mapper Pattern: Used to decouple business logic from the persistence layer, ensuring domain objects remain independent of the database logic.
+- Data Mapper Pattern: Complete separation between business logic and persistence.
 
-- Repository Pattern: Used to encapsulate CRUD operations and reusable queries, making the codebase cleaner, more testable, and easier to maintain.
+- Repository Pattern: Encapsulation of CRUD operations and reusable queries
 
 **Class Layers for Data Access:**
 - Entity: Defines the structure of data models mapped to PostgreSQL tables.
@@ -731,41 +735,34 @@ DynamoDB (NoSQL) is handled separately using the AWS SDK.
 - Service Layer: Manages business logic and coordinates interactions between multiple repositories, often within transactions.
 
 **Configuration Policies/Rules:**
-- Entity Mapping: Classes are annotated with TypeORM decorators to define their relationship with database tables.
+- Data validation through DTOs using class-validator before persisting.
 
-- Validation: Validation rules are applied before persisting data, using libraries such as class-validator with DTOs.
-
-- Transaction Control: Critical operations are executed inside transactions using TypeORM’s QueryRunner to ensure atomicity and consistency.
+- Use of QueryRunner to guarantee atomicity in critical flows.
 
 **Expected Benefits:**
-- Decoupling: Keeps business logic independent from database operations, making the system easier to scale and maintain.
+- Maintainable, persistence-layer-decoupled code.
 
-- Developer Productivity: ORM reduces repetitive SQL code and simplifies access to complex relationships between entities.
-
-- Data Integrity: Transaction management from the backend ensures consistent and reliable operations, even during failures.
+- Guaranteed data integrity through explicit transaction control.
 
 ## c) Layers for Connection Control, Concurrency, Mapping Data to Objects and Vice Versa:
-Cloud Service Technology (Precise):
+**Cloud Service Technology:**
 PostgreSQL on Amazon RDS:
-
-Connection pooling is managed using pg-pool, internally through TypeORM's DataSource class.
+PostgreSQL Aurora RDS managed through TypeORM's connection pool.
 
 **Pool settings:**
 
-- max: 10 (maximum 10 active connections per instance)
+- max: 10 
 
-- min: 2 (minimum 2 idle connections kept alive)
+- min: 2
 
-- idleTimeoutMillis: 30000 (idle connection closed after 30 seconds)
+- idleTimeoutMillis: 30000 
 
 **Object-Oriented Design Patterns:**
 - Proxy Pattern: We use  a ConnectionManager to act as a single point to distribute pooled connections across services
 
 - Data Mapper Pattern: Maps database rows into TypeScript class instances without embedding SQL inside business logic.
 
-- Unit of Work Pattern (via TypeORM Transaction Management):
-
-We are going to use TypeORM’s QueryRunner.
+- Unit of Work Pattern (via TypeORM Transaction Management): We are going to use TypeORM’s QueryRunner.
 
 How used:
 
@@ -876,27 +873,20 @@ Database interactions are optimized using native drivers for PostgreSQL and Dyna
 - Robustness against transient failures and backend flexibility.
 
 ## g) Data Design:
-Our data model separates structured and unstructured data across PostgreSQL and DynamoDB, applying relational and NoSQL best practices to optimize performance and scalability.
+**Relational Model (PostgreSQL):**
+- users (id, email, password_hash, timestamps)
 
-**Class Layers for Data Access:**
-- Entities (UserEntity, PaymentEntity, SubscriptionEntity) define relational structures.
+- payments (id, user_id FK, amount, payment_method, status)
 
-- DTOs (CreatePaymentDTO, SubscribePlanDTO) manage API data input/output.
+- subscriptions (id, user_id FK, plan, status, renewal_date)
 
-**Object-Oriented Design Patterns:**
-- Composite Pattern models relationships such as users linked to multiple payments and subscriptions.
+**Non-Relational Model (DynamoDB):**
+- logs (PartitionKey: user_id, SortKey: timestamp, event_type, payload)
 
-- ECS (Entity-Component-System) organizes logs and events in DynamoDB.
-
-**Configuration Policies/Rules:**
-- PostgreSQL tables normalized up to 3NF for data consistency.
-
-- DynamoDB collections denormalized for optimized single-read access (partition key: userId, sort key: timestamp).
-
-**Expected Benefits:**
-- Efficient database operations tailored for relational and event-driven data.
-
-- Scalable architecture ready to support high transaction volumes.
+**Expected benefits:**
+- Efficient structured queries and relationship handling in RDS.
+  
+- Scalable event storage with optimized access patterns in DynamoDB.
 
 
 ## Architectural Diagram:
