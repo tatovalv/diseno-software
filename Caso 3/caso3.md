@@ -97,12 +97,14 @@ Las alertas estructuradas en la tabla siguiente van a ser utilizadas para manten
 |Modificación sin justificación  | Reversión automática              | Admins DB    | 30 minutos          |
 |Patrón de acceso inusual        | Análisis comportamiento           | SIEM Team    | 1 hora              |
 > SOC: Security Operations Center
-
+> 
 > CISO: Chief Information Security Officer
-
+> 
 > DPO: Data Protection Officer
-
+> 
 > SIEM: Security Information and Event Management 
+
+> ** Estos roles y departamentos no exactamente pueden existir en data pura vida pero 
 
 ### Mecanismo de Auditoría
 El mecanismo implementa AWS Config para detectar automáticamente configuraciones no compatibles, evaluar el cumplimiento de los múltiples estándares normativos que se tienen, generar evidencia auditable e implementar mecanismos de remediación automática (buscar detectar y solucionar problemas). También se implementa AWS Athena para reportes automáticos ya que esta herramienta es capaz de analizar grandes cantidades de datos con cierta facilidad y flexibilidad.
@@ -118,3 +120,37 @@ NIST Cybersecurity Framework DE.CM-4 y DE.AE-3
 PCI DSS Req 10
 Ley 81 Art. 5
 -->
+
+# Restricción de Acceso Técnico a Datos Sensibles
+Se debe garantizar que ningún personal técnico, de devops, ingeniero de datos etc. tenga ingreso a los datos sin una debida autorización, para eso se diseñó un sistema que combina 6 factores clave:
+* **Cifrado de datos**
+* **Control de acceso basado en atributos**
+* **Proxy de datos seguros**
+* **Elevación de privilegios Just-in-Time**
+* **Segregación de ambientes**
+* **Monitoreo y auditoría**
+  
+### Cifrado de Datos
+El cifrado de datos fue detallado en una sección anterior, pero como resumen este... TBD
+
+### Control de acceso basado en atributos
+Este control obliga a que cada solicitud incluya MFA, justificación de acceso y roles de acceso específicos además de que los roles técnicos tienen explícitamente prohibido el acceso a datos planos.
+
+### Proxy de datos seguros
+Este intermediario cuenta con varias capas: capa de validación (verifica permisos y las solicitudes que entran), capa de transformación (aplica enmascaramiento y filtrado según criterios definidos) y capa de auditoría (registra cada operación antes de ejecutarla) y dentro de sus características claves es que este nunca expone conexiones directas y aplica reglas de minimización (muestra solo lo necesario).
+
+### Elevación de privilegios Just-in-Time
+Este factor contiene 4 pasos clave:
+1. Solicitud: El técnico justifica la necesidad con ticket aprobado.
+
+2. Aprobación: Requiere confirmación de un responsable.
+
+3. Concesión: Credenciales temporales válidas por un límite de tiempo definido.
+
+4. Monitoreo: Se extraen datos en tiempo real que son supervisados.
+
+### Segregación de ambientes
+Este factor cosiste en dividir el ambiente de trabajo en **ambiente de producción** donde el acceso es restringido y solo puede ser accedido mediante proxys, **ambiente de desarrollo** donde se tienen datos que son anonimizados además de redes aisladas con controles estrictos.
+
+### Monitoreo y auditoría
+Este factor cuenta con varias tecnologías de AWS GuardDuty y AWS Macie que detectan comportamientos anómalos e identifica exposición de datos sensibles.
