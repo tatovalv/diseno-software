@@ -6,18 +6,21 @@ Isaac Rojas
 Juan Carlos Valverde
 Luis Masis
 
-# Introducción
+
+# Definición de la Arquitectura
+
+## Introducción
 
 La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistema nacional de datos que permita a instituciones públicas, empresas privadas y ciudadanos compartir, acceder y utilizar información de manera fácil, segura y eficiente. Este documento describe la arquitectura técnica base del sistema, detallando sus componentes clave (como bases de datos, interfaces y protocolos de seguridad) y cómo estos se integran para garantizar que los datos sean interoperables (compatibles entre diferentes sistemas), protegidos contra riesgos y accesibles para quienes los necesiten. El objetivo es sentar las bases de una infraestructura que impulse la transparencia, la innovación y la toma de decisiones basada en evidencia, beneficiando a todo el país.
 
-# Objetivos de la Arquitectura
+## Objetivos de la Arquitectura
 
 - Establecer una visión técnica clara para todos los actores involucrados.
 - Asegurar escalabilidad, trazabilidad, seguridad y mantenibilidad desde el diseño.
 - Definir los componentes principales del sistema y sus responsabilidades.
 - Proveer una guía para futuras decisiones técnicas.
 
-# Componentes principales
+## Componentes principales
 
 | Componente                             | Descripción                             |
 |----------------------------------------|-----------------------------------------|
@@ -30,11 +33,11 @@ La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistem
 | Módulos de IA		                     | Ejecutan validación documental, prompting para visualizaciones inteligentes y sugerencias de uso de datasets.|
 | Sistema de Seguridad	                 | Aplica cifrado en tránsito y en reposo, manejo de llaves (incluyendo llaves tripartitas) y control de accesos por roles y contexto.|
 
-# Diagrama de Contenedores
+## Diagrama de Contenedores
 
 ![imagen](Recursos/diagrama_contenedores_data_pura_vida.png)
 
-## Tecnologías sugeridas por contenedor
+### Tecnologías sugeridas por contenedor
 
 | Contenedor                             | Tecnologías sugeridas                   |
 |----------------------------------------|-----------------------------------------|
@@ -47,7 +50,7 @@ La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistem
 | Seguridad 	                         | AWS KMS, Secrets Manager, Shield, WAF   |
 | Backoffice	                         | React + shadcn/ui + RBAC modular        |
 
-# Riesgos técnicos iniciales identificados
+## Riesgos técnicos iniciales identificados
 
 1. Complejidad de integraciones entre componentes con IA
 Mitigación propuesta: Diseñar APIs intermedias desacopladas
