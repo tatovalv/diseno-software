@@ -160,7 +160,7 @@ Este factor cuenta con varias tecnologías de AWS GuardDuty y AWS Macie que dete
 
 ## Control de Versiones y Deltas para Cada Dataset
 
-A medida que la plataforma JAMI Pura Vida recibe más y más datasets, es importante tener una estrategia clara para controlar sus versiones, ahorrar espacio y mantener la trazabilidad de todo lo que ocurre con los datos.
+A medida que la plataforma *JAMI Pura Vida* recibe más y más datasets, es importante tener una estrategia clara para controlar sus versiones, ahorrar espacio y mantener la trazabilidad de todo lo que ocurre con los datos.
 
 Esta tarea tiene como objetivo definir cómo vamos a manejar las diferentes versiones de un mismo dataset, y cómo registrar solamente los cambios (deltas) que ocurren entre una versión y otra. De esta forma evitamos almacenar archivos completos cada vez que se actualiza algo, lo que nos ayuda a reducir el espacio utilizado, pero sin perder el historial de los datos.
 
@@ -261,3 +261,122 @@ Esta información se puede guardar en una tabla en `DynamoDB` o en archivos en `
 -	Mantiene trazabilidad, ya que se puede reconstruir cualquier versión del dataset si es necesario.
 - Facilita auditorías y debugging.
 
+_______________________________________________
+
+## Definición del Motor de Carga ETDL Inteligente con IA
+
+Para manejar de forma eficiente los distintos datasets que ingresan a la plataforma *JAMI Pura Vida*, se propone el diseño de un motor ETDL inteligente que permita no solo cargar los datos, sino también asegurar su calidad, contexto y trazabilidad.
+
+Este motor sigue una estructura modular con etapas de extracción, transformación, detección de contexto y modelado, integrando IA para analizar los metadatos y el contenido de los datos. Como parte central del diseño, se incorpora el patrón Reactivo, que permite que el sistema detecte y reaccione automáticamente ante nuevos datasets, rediseñando el modelo de datos cuando sea necesario.
+
+El objetivo es reducir al mínimo las intervenciones manuales, aprovechar la inteligencia artificial para tomar decisiones sobre el esquema de datos, y mantener siempre un registro claro de todo lo que ocurre en el proceso.
+
+### Objetivo general de esta nueva tarea
+
+Diseñar los módulos y el flujo del motor ETDL inteligente con IA, asegurando calidad de datos (consistencia, completitud, limpieza), trazabilidad (saber qué se hizo, cuándo y por qué) y aprovechar IA para decisiones automáticas durante el modelado.
+
+### Estructura general del Motor ETDL Inteligente
+
+![imagen](Recursos/ETDL.drawio.png)
+
+#### 1. ExtractionModule
+
+Se encarga de recibir datasets desde múltiples fuentes (archivos, APIs, bases de datos). Su función es desacoplar la ingesta del resto del flujo, y garantizar que los datos lleguen completos.
+
+Tecnologías: Amazon S3, AWS Glue, AWS DMS.
+
+#### 2. TransformationModule
+
+Aquí se ejecutan las tareas tradicionales de limpieza y transformación: validación de tipos, eliminación de duplicados, estandarización de formatos, y normalización de campos. Este paso garantiza calidad básica antes de pasar a IA.
+
+Tecnologías: AWS Glue, AWS Lambda.
+
+#### 3. ContextDetectionModule
+
+Este módulo utiliza IA para identificar el contexto semántico de los datos. Analiza nombres de columnas, metadatos, ejemplos de valores y estructuras comunes. Sirve como base para el modelado inteligente.
+
+Tecnologías: Amazon Comprehend, Textract.
+
+#### 4. IntelligentModelingModule
+
+Es el núcleo del sistema inteligente. Reacciona ante nuevos datasets y, con ayuda del LLM, detecta si deben fusionarse, vincularse, renombrarse o generar relaciones con datos existentes. Utiliza el patrón Reactivo porque responde a cambios en el estado del datalake sin intervención manual.
+
+#### Metáfora del mundo real del patrón
+
+Sistema inmunológico humano
+
+Así como el cuerpo humano detecta cambios en su entorno interno (virus, bacterias) y reacciona automáticamente activando defensas, el patrón reactivo en este sistema actúa ante la llegada de nuevos datasets, analiza sus características y toma acciones inmediatas como:
+
+-	Reorganizar relaciones entre datos existentes.
+-	Unir datasets que tienen campos comunes (como si detectara ADN similar).
+-	Agregar columnas donde se necesitan más detalles.
+-	Optimizar el modelo actual de forma automática sin intervención manual.
+
+#### Explicación funcional del Reactive Pattern en este caso
+
+El agente reactivo:
+
+1.	Espera pasivamente a que nuevos datasets ingresen al datalake.
+
+2.	Reacciona inmediatamente al evento de inserción mediante un pipeline automático.
+
+3.	Utiliza metadatos y análisis semántico del contenido para decidir:
+
+    -	Si debe hacer merge entre datasets.
+    -	Si hay columnas que deben unirse o renombrarse.
+    -	Si se deben establecer relaciones y generar llaves foráneas.
+    -	Si deben crearse índices o transformar el modelo de datos existente.
+
+4.	Aplica las transformaciones y reestructura el esquema sin intervención humana directa.
+
+#### Diagrama del patrón reactivo personalizado
+
+![imagen](Recursos/ReactivePattern.drawio.png)
+
+#### Componentes del patrón
+
+| Componente     | Función      | 
+|----------------------|----------------|
+| DatasetListener | Detecta la llegada de nuevos datasets en S3/Glue |
+| SchemaAnalyzer | Extrae y analiza los metadatos + semántica de columnas |
+| AIReactor (LLM Handler) | Consulta al LLM o motor IA con prompt estructurado |
+| SchemaRewriter | Aplica cambios al modelo de datos |
+| ModelStore | Registra la nueva versión del modelo optimizado |
+| ActionLogger | Guarda todas las decisiones y transformaciones para trazabilidad |
+
+#### Inputs
+
+-	Dataset cargado (Excel, CSV, JSON)
+-	Metadatos declarados (tipo de columnas, relaciones sugeridas)
+-	Historial de datasets existentes
+
+#### Result Output
+
+-	Modelo de datos transformado: actualizado, optimizado, versionado
+-	Acciones registradas en logs (para auditoría y reversión)
+-	Nuevas relaciones entre datasets reflejadas en Glue Catalog o Redshift
+
+#### Interacción con el LLM / Servicio de IA
+
+Ocurre dentro del componente AIReactor, que genera prompts con la siguiente estructura:
+
+```sh
+"Recibiste un nuevo dataset con las siguientes columnas: [...]. 
+Ya existen otros datasets con columnas similares: [...]. 
+Analiza si debe realizarse un merge, agregar columnas, renombrar, 
+crear relaciones o índices. Responde con acciones estructuradas."
+```
+
+Este componente puede usar Amazon Bedrock o SageMaker Endpoint personalizado si se entrena un modelo propio.
+
+#### 5. LoadModule
+
+Solo si el modelado fue exitoso, los datos se cargan al datalake (Data Lake formal) usando los esquemas actualizados. Esta operación puede incluir escritura en formato columnar, compresión, y control de versiones.
+
+Tecnologías: Amazon S3, AWS Glue, Redshift (opcional).
+
+#### 6. TraceabilityLogger
+
+Se encarga de registrar todo lo que sucede: desde el origen del dataset, hasta cada transformación y decisión tomada por el LLM. Provee trazabilidad completa para auditoría, debugging y control de calidad.
+
+Tecnologías: AWS CloudWatch Logs, DynamoDB.
