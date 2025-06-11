@@ -157,3 +157,105 @@ Este factor cosiste en dividir el ambiente de trabajo en **ambiente de producci�
 
 ### Monitoreo y auditoría
 Este factor cuenta con varias tecnologías de AWS GuardDuty y AWS Macie que detectan comportamientos anómalos e identifica exposición de datos sensibles.
+
+## Control de Versiones y Deltas para Cada Dataset
+
+A medida que la plataforma JAMI Pura Vida recibe más y más datasets, es importante tener una estrategia clara para controlar sus versiones, ahorrar espacio y mantener la trazabilidad de todo lo que ocurre con los datos.
+
+Esta tarea tiene como objetivo definir cómo vamos a manejar las diferentes versiones de un mismo dataset, y cómo registrar solamente los cambios (deltas) que ocurren entre una versión y otra. De esta forma evitamos almacenar archivos completos cada vez que se actualiza algo, lo que nos ayuda a reducir el espacio utilizado, pero sin perder el historial de los datos.
+
+Además, todo este proceso debe quedar bien documentado, de modo que siempre podamos saber qué versión se usó, qué cambió, quién hizo el cambio (si aplica), y cuándo.
+
+### Propuesta de solución
+
+La idea es trabajar con un modelo mixto que combine:
+
+1.	 Snapshots o versiones completas del dataset (cuando se crea por primera vez o cada cierto tiempo), y
+
+2. Archivos delta, que registran únicamente lo que cambió entre una versión y otra (por ejemplo: datos nuevos, editados o eliminados).
+
+### Manejo de versiones
+
+Cada vez que se sube un dataset por primera vez, se guarda como una versión completa. A partir de ahí, se puede trabajar con cargas incrementales, donde solo se guarda lo que cambió desde la última versión.
+
+Para organizarlas, se pueden usar carpetas dentro de S3 con nombres que indiquen la versión o la fecha:
+
+```sh
+/dataset=usuarios/version=2025-02-03/
+/dataset=usuarios/version=2025-05-06-delta/
+```
+
+Para llevar un control claro de cada versión o delta que se cargue en el sistema, se usará una tabla llamada DatasetVersionLog, donde se registra todo lo relacionado con esa versión: qué tipo fue, cuántos registros tiene, quién la cargó, si hubo errores, la ruta del archivo en S3, etc.
+
+Esta tabla nos permite reconstruir la historia completa de cualquier dataset, detectar errores rápidamente, y tener trazabilidad tanto técnica como legal si es necesario. Se va a guardar un registro por cada carga que se haga (ya sea una versión completa o un delta), con información clave para identificar qué cambió, cuándo y en qué condiciones.
+
+### Estructura de la tabla DatasetVersionLog
+
+| Columna           | Tipo de Dato           | Descripción                      |
+|-----------------|----------------|---------------------------------------|
+| dataset_id | String | Nombre o identificador del dataset afectado (ej: empleados, salud_poblacional). |
+| version_id | String (fecha o UUID) | Identificador único de la versión (ej: 2024-06-01, 20240605-delta). |
+| version_type | String | "snapshot" o "delta", según el tipo de carga. |
+| timestamp | Datetime | Fecha y hora en que se cargó esa versión. |
+| operation_type | String | "insert", "update", "delete" o "mixed". |
+| record_count | Int | Cantidad de registros procesados en esta versión. |
+| executed_by | String | Usuario, sistema o proceso que hizo la carga. |
+| surce_file_path | String | Ruta del archivo en S3 asociado a la versión. |
+| hash | String (SHA256) | Hash del archivo para validar integridad. |
+| status | String | "success", "error" o "partial". |
+| error_messagge (opcional) | String | Mensaje de error si la carga falló. |
+| notes (opcional) | String | Campo libre para comentarios adicionales. |
+
+### ¿Cómo se detectan los deltas?
+
+La detección de cambios se puede hacer de dos formas:
+
+a) Usando columnas de control
+
+Cada dataset puede tener campos como:
+
+- last_updated_timestamp: para saber si un registro fue actualizado.
+- operation_type: para saber si fue un insert, update o delete.
+
+b) Comparando versiones
+
+Si el dataset no trae esas columnas, se puede comparar la nueva versión contra la anterior, y ver:
+
+-	Qué registros aparecen nuevos.
+-	Cuáles tienen diferencias.
+-	Cuáles ya no están.
+
+Esto se puede automatizar con herramientas como AWS Glue, que permite comparar datos con scripts, o incluso con consultas en Redshift si los datasets están registrados.
+
+### Aplicación de cambios (merge)
+
+Una vez identificados los cambios, se aplican al dataset principal, por ejemplo con un comando `MERGE INTO`, que:
+
+-	Inserta los registros nuevos.
+-	Actualiza los que cambiaron.
+-	Elimina los que ya no deberían estar.
+
+Este proceso mantiene la integridad de los datos y evita duplicaciones o errores por cargas repetidas.
+
+
+### Diagrama de flujo
+ 
+### Trazabilidad y registros
+
+Para mantener un buen control de todo el proceso, se pueden registrar los siguientes datos por versión:
+
+- Fecha de carga.
+-	Hash del archivo.
+-	Registros totales.
+-	Tipo de operación (completa o delta).
+-	Resultado del procesamiento (exitoso o con errores).
+
+Esta información se puede guardar en una tabla en `DynamoDB` o en archivos en `S3`, y los logs del proceso se pueden enviar a `CloudWatch`.
+
+### Puntos altos de este enfoque
+
+-	Ahorra espacio porque no se guardan archivos completos innecesarios.
+-	Mejora el rendimiento al trabajar con datos más livianos.
+-	Mantiene trazabilidad, ya que se puede reconstruir cualquier versión del dataset si es necesario.
+- Facilita auditorías y debugging.
+
