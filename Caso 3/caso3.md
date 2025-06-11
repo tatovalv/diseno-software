@@ -239,6 +239,8 @@ Este proceso mantiene la integridad de los datos y evita duplicaciones o errores
 
 
 ### Diagrama de flujo
+
+![imagen](Recursos/Deltas.drawio.png)
  
 ### Trazabilidad y registros
 
