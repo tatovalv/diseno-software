@@ -67,7 +67,7 @@ Mitigación propuesta: Integración temprana con asesoría legal para auditoría
 4. Seguridad de datos en ambientes técnicos	
 Mitigación propuesta: Políticas Zero Trust + cifrado forzado en todas las capas
 
-# Diseño de Llave Criptográfica Tripartita
+## Diseño de Llave Criptográfica Tripartita
 Las llaves tripartitas en el contexto de este sistema van a ser de utilidad para proteger las claves criptográficas generadas distribuyendo una parte a Data Pura Vida y las otras dos a personas, entidades, etc. definidas por el usuario.
 
 El sistema propuesto para implementar esta llave utiliza AWS KMS y CloudHSM para la administración de las claves simétricas y asimétricas creadas y el algoritmo [SSS](https://www.geeksforgeeks.org/shamirs-secret-sharing-algorithm-cryptography/) (Shamir's Secret Sharing) para la división e implementación de la llave, este algoritmo divide la clave en la cantidad de partes que se deseen (en este caso van a ser tres) y asegura que se necesiten al menos dos o incluso las tres partes para reconstruir la clave. En este caso se van a tener que utilizar dos partes por razones de redundancia.
@@ -77,45 +77,52 @@ El diagrama siguiente puede ayudar a entender el funcionamiento de esta llave de
 
 Las ventajas que proporciona el uso de esta llave es la mencionada redundancia ya que, si se pierde una parte, el sistema sigue funcionando y también mitiga riesgos de compromiso por una sola parte. Este sistema no asegura que exista complejidad en la gestión de las partes o que exista un riesgo de ataque si dos partes cometen un fallo o se ve violentada su seguridad (esto último podría evitarse obligando a ser necesarias las tres parte de la llave). 
 
-# Aseguramiento del Cumplimiento Normativo y de Estándares
-Para cumplir con los estándares internacionales y legislaciones nacionales, se propone la implementación de logs, de alertas obligatorias y de un mecanismo de auditoria para asegurar el apego a estos estándares y legislaciones.
+## Aseguramiento del Cumplimiento Normativo y de Estándares
+Para cumplir con los estándares internacionales y legislaciones nacionales, se implementaron una serie de logs, alertas obligatorias y un mecanismo de auditoria para asegurar el apego a estos estándares y legislaciones.
 
 ### Estructura de logs 
-Esta estructura de logs va a utilizar las tecnologías de AWS de CloudWatch (para el almacenamiento de los logs), AWS Kinesis Firehose (para la recopilación y análisis de datos en tiempo real), Lambda (para enriquecimiento de los logs) y opcionalmente S3 (por si se quiere un almacenamiento a largo plazo de los logs).
+Esta estructura de logs va a utilizar las tecnologías de AWS de CloudWatch (para el almacenamiento de los logs), AWS Kinesis Firehose (para la recopilación y análisis de datos en tiempo real), Lambda (para enriquecimiento de los logs con la [powertool](https://aws-amazon-com.translate.goog/blogs/opensource/simplifying-serverless-best-practices-with-lambda-powertools/?_x_tr_sl=en&_x_tr_tl=es&_x_tr_hl=es&_x_tr_pto=tc) *Logger*) y opcionalmente S3 (por si se quiere un almacenamiento a largo plazo de los logs).
+La estructura de los logs a utilizar es la siguiente (estos campos cambian según el evento):
 
-La estructura que van a seguir los logs a implementar es descrita en la siguiente tabla:
+```python
+log_entry = {
+    'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+    'eventId': str(uuid.uuid4()),
+    'userId': self._get_user_id(),
+    'eventType': event_type,
+    'sourceIP': self._get_ip(),
+    'details': details,
+    'complianceTags': self._get_compliance_tags(event_type)
+}
+```
+
+Los eventos del sistema a registrar y los campos de este están descritos en la siguiente tabla:
 
 | Evento/s                                              | Campos del log                                             |        
 |-------------------------------------------------------|------------------------------------------------------------| 
-| Logins exitosos/fallidos, cambios de credenciales     | Timestamp, ID del usuario, método autenticación, resultado | 
-| Acceso a Datos (Consultas, lecturas etc.)             | Timestamp, ID del usuario, dataset, campos accedidos       | 
-| Creación/edición/eliminación de datos                 | Timestamp, ID del usuario, campo antes/después             |
-| Intentos de vulneración, cambios de configuración     | Timestamp, IP, acción, sistema afectado                    |
-| Consentimientos, solicitudes de ejerción  de derechos | Timestamp, ID del usuario, tipo solicitud, respuesta       |
+| Logins exitosos/fallidos, cambios de credenciales     | Timestamp, ID del usuario, Tipo de evento, método autenticación, resultado | 
+| Acceso a Datos (Consultas, lecturas etc.)             | Timestamp, ID del usuario, Tipo de evento, dataset, campos accedidos       | 
+| Creación/edición/eliminación de datos                 | Timestamp, ID del usuario, Tipo de evento, campo antes/después             |
+| Intentos de vulneración, cambios de configuración     | Timestamp, IP, Tipo de evento, acción, sistema afectado                    |
+| Consentimientos, solicitudes de ejerción de derechos | Timestamp, ID del usuario, Tipo de evento, tipo solicitud, respuesta       |
 
 ### Mecanismos de Alerta Obligatorios
 Las alertas estructuradas en la tabla siguiente van a ser utilizadas para mantener un mínimo de control sobre posibles acciones sospechosas que pueden ocurrir en el sistema:
 
-| Detonante                      | Acción                            | Notificación | Tiempo de Respuesta |      
-|--------------------------------|-----------------------------------|--------------|---------------------|  
-| +3 intentos fallidos de acceso | Bloqueo temporal más notificación | SOC, CISO    | 15 minutos          |
-|Acceso a >100 registros PII     | Revisión manual                   | DPO          | 24 horas            |  
-|Modificación sin justificación  | Reversión automática              | Admins DB    | 30 minutos          |
-|Patrón de acceso inusual        | Análisis comportamiento           | SIEM Team    | 1 hora              |
-> SOC: Security Operations Center
-> 
-> CISO: Chief Information Security Officer
-> 
-> DPO: Data Protection Officer
-> 
-> SIEM: Security Information and Event Management 
+| Detonante                      | Acción                            | Tiempo de respuesta máximo|      
+|--------------------------------|-----------------------------------|---------------------|  
+| +3 intentos fallidos de acceso | Bloqueo temporal más notificación | 15 minutos          |
+|Acceso a >100 registros PII     | Revisión manual                   | 24 horas            |  
+|Modificación sin justificación  | Reversión automática              | 30 minutos          |
+|Patrón de acceso inusual        | Análisis comportamiento           | 1 hora              |
 
-> ** Estos roles y departamentos no exactamente pueden existir en data pura vida pero 
+Estas alertas usan la powertool *Metrics* de Lambda para crear la alerta cuando el detonante ocurre haciendo llegar esta o estas a la persona o equipo encargado de la seguridad.
 
 ### Mecanismo de Auditoría
 El mecanismo implementa AWS Config para detectar automáticamente configuraciones no compatibles, evaluar el cumplimiento de los múltiples estándares normativos que se tienen, generar evidencia auditable e implementar mecanismos de remediación automática (buscar detectar y solucionar problemas). También se implementa AWS Athena para reportes automáticos ya que esta herramienta es capaz de analizar grandes cantidades de datos con cierta facilidad y flexibilidad.
 
 Aparte, este mecanismo contempla la retención de logs según su antigüedad con CloudWatch para retención de logs menores a 6 meses y S3 para los logs más antiguos e importantes.
+
 
 <!-- Leyes/Estandares cumplidos
 Ley 8968 (Art 16, Art 17, Art 19, Arts 21-30)
@@ -126,8 +133,9 @@ NIST Cybersecurity Framework DE.CM-4 y DE.AE-3
 PCI DSS Req 10
 Ley 81 Art. 5
 -->
+-->
 
-# Restricción de Acceso Técnico a Datos Sensibles
+## Restricción de Acceso Técnico a Datos Sensibles
 Se debe garantizar que ningún personal técnico, de devops, ingeniero de datos etc. tenga ingreso a los datos sin una debida autorización, para eso se diseñó un sistema que combina 6 factores clave:
 * **Cifrado de datos**
 * **Control de acceso basado en atributos**
@@ -137,30 +145,119 @@ Se debe garantizar que ningún personal técnico, de devops, ingeniero de datos 
 * **Monitoreo y auditoría**
   
 ### Cifrado de Datos
-El cifrado de datos fue detallado en una sección anterior, pero como resumen este... TBD
+El cifrado de datos fue detallado en una sección anterior, pero como resumen este... TBD (esperando a que esa sección este hecha en su completitud)
 
 ### Control de acceso basado en atributos
-Este control obliga a que cada solicitud incluya MFA, justificación de acceso y roles de acceso específicos además de que los roles técnicos tienen explícitamente prohibido el acceso a datos planos.
+Este control utiliza IAM para crear políticas para restringir estrictamente el acceso a los datos en el data lake si no se cumplen unas ciertas condiciones. La política es de tipo "Deny" lo que significa que explícitamente niega ciertas acciones a menos que se cumplan todas las condiciones especificadas. Las condiciones a cumplir en este control son las de restricción geográfica es decir que solo se pueden realizar operaciones dentro del país, que el usuario este autenticado con MFA y que el usuario posee una etiqueta especifica que otorgue acceso y coincida con su ARN (identificador único del usuario).
+
+Estas políticas pueden verse de esta manera mediante configuraciones de AWS IAM como la siguiente:
+
+```python
+abac_policy = {
+    "Version": "2025-XX-XX",
+    "Statement": [
+        {
+            "Effect": "Deny",
+            "Action": [
+                "s3:GetObject",
+                "glue:GetTable",
+                "athena:GetQueryResults"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "NotIpAddress": {
+                    "aws:SourceIp": [
+                        "190.57.0.0/16",  # Rango principal de Costa Rica
+                        "201.222.0.0/16", 
+                        "200.107.0.0/16"  
+                    ]
+                }
+                "Null": {
+                    "aws:MultiFactorAuthPresent": "false"
+                },
+                "ForAnyValue:StringNotLike": {
+                    "aws:PrincipalTag/DataAccess": "${aws:PrincipalArn}"
+                }
+            }
+        }
+    ]
+}
+```
 
 ### Proxy de datos seguros
-Este intermediario cuenta con varias capas: capa de validación (verifica permisos y las solicitudes que entran), capa de transformación (aplica enmascaramiento y filtrado según criterios definidos) y capa de auditoría (registra cada operación antes de ejecutarla) y dentro de sus características claves es que este nunca expone conexiones directas y aplica reglas de minimización (muestra solo lo necesario).
+Este componente va a actuar como un intermediario entre el sistema y el datalake, cuenta con varias capas que realizan cada una su función: capa de validación (verifica permisos y las solicitudes que entran), capa de transformación (aplica enmascaramiento y filtrado según criterios definidos) y capa de auditoría (registra cada operación antes de ejecutarla) y dentro de sus características claves es que este nunca expone conexiones directas y aplica reglas de minimización (muestra solo lo necesario).
 
 ### Elevación de privilegios Just-in-Time
-Este factor contiene 4 pasos clave:
-1. Solicitud: El técnico justifica la necesidad con ticket aprobado.
+Este factor utiliza AWS Security Token Service (AWS STS) para crear credenciales temporales con privilegios específicos contiene 4 pasos clave:
+1. Solicitud: El técnico justifica la necesidad con ticket aprobado (esto se hace fuera del factor, por ejemplo, mediante la creación de un ticket solicitando acceso).
 
 2. Aprobación: Requiere confirmación de un responsable.
 
 3. Concesión: Credenciales temporales válidas por un límite de tiempo definido.
 
 4. Monitoreo: Se extraen datos en tiempo real que son supervisados.
+Ejemplos de cómo crear este componente se pueden encontrar en la [documentación oficial de AWS STS.](https://docs.aws.amazon.com/es_es/IAM/latest/UserGuide/service_code_examples_sts.html)
 
 ### Segregación de ambientes
 Este factor cosiste en dividir el ambiente de trabajo en **ambiente de producción** donde el acceso es restringido y solo puede ser accedido mediante proxys, **ambiente de desarrollo** donde se tienen datos que son anonimizados además de redes aisladas con controles estrictos.
 
 ### Monitoreo y auditoría
-Este factor cuenta con varias tecnologías de AWS GuardDuty y AWS Macie que detectan comportamientos anómalos e identifica exposición de datos sensibles.
+Este factor cuenta con las tecnología de AWS GuardDuty que va a ser usado como detector de amenazas, este analiza en segundo plano patrones de acceso a datalake, llamadas a APIs inusuales o comportamientos extraños de roles. Cuando ocurre un evento sospechoso notifica al equipo de seguridad y registra el incidente para investigación, también es importante tener en cuenta que estas respuestas se podrían automatizar con Lambda y demás.
 
+También se tiene en cuenta la tecnología de AWS Macie que va a servir para descubrir automáticamente datos sensibles y alertar sobre posibles exposiciones de datos críticos, esto se logra mediante jobs como por ejemplo el que se encuentra aquí abajo el cual es encargado de detectar formatos como: cédulas, tarjetas crédito, emails, etc.
+
+```python
+macie.create_classification_job(
+    jobType='SCHEDULED', # También puede ser 'ONE_TIME'
+    name='DPVida-Data-Classification',
+    s3JobDefinition={
+        'bucketDefinitions': [
+            {
+                'accountId': '123456789012',
+                'buckets': ['dpvida-prod-data']
+            }
+        ],
+        'scoping': {
+            'excludes': {
+                'and': [
+                    {
+                        'tagScopeTerm': {
+                            'tagKey': 'DataClassification',
+                            'tagValues': ['Public'] #Omite datos marcados como públicos
+                        }
+                    }
+                ]
+            }
+        }
+    }
+)
+```
+
+# Sistema de Métricas, Consumo y Alertas
+El sistema de módulos planteados a continuación busca proporcionar una visión completa del sistema comenzando por la métricas más críticas con la posibilidad de agregar las que se necesiten según se considere necesario. 
+
+Dentro de las especificaciones técnicas dentro del sistema se encuentra la frecuencia de muestreo se tienen 15 segundos para las métricas clave, 1 minuto para demás métricas operacionales y 1 hora para los historiales. En materia de retención de datos se van a tener los datos más actuales a 7 días de su extracción, los de corto plazo a 30 días y los de largo plazo de estos 30 días en adelante. Se pueden tomar en cuenta otros módulos como módulos para la gestión del ciclo de vida de los datos o para seguridad, pero estos no van a ser explicados en detalle.
+
+Los módulos claves del sistema son los siguientes:
+
+## 1. Módulos de Recolección de Métricas
+
+### 1.1. Módulo de Telemetría de Datos
+Este módulo es el encargado de recoger métricas como el volumen de datos procesados (GB/día), tasa de transferencia (MB/seg), latencia en pipelines de ETL y los tiempos de respuesta por API. Esto es posible mediante AWS CloudWatch con Prometheus.
+
+### 1.2. Módulo de Auditoría de Accesos
+Este módulo recoge datos y métricas como intentos de acceso fallidos, patrones de consulta sospechosos y uso de credenciales temporales esto mediante tecnologías como AWS CloudTrail.
+
+## 2. Módulos de Procesamiento y Análisis
+
+### 2.1. Módulo de Detección de Anomalías
+Este módulo es el encargado de seguir que se siga el "comportamiento normal" modelado y de alertar en tiempo real las desviaciones esto a gracias a Amazon Lookout for Metrics que detecta anomalías en métricas e identifica su causa de manera automática.
+
+### 2.2. Módulo de Rendimiento Operativo
+Este módulo consiste en desbordas de métricas como disponibilidad del sistema (uptime), capacidad de almacenamiento utilizada y rendimiento de consultas. Estos dashboards pueden ser fácilmente implementados usando plantillas o creándolos desde cero con tecnologías como Grafana o AWS QuickSight
+
+## 3. Módulos de Visualización y Alertas
+Este módulo va a contar con ciertos dashboards, widgets, gráficos etc. que van a servir para visualizar la salud del sistema, monitorear el uso de recursos y crear alertas si se presenta un problema de seguridad.
 _______________________________________________________________
 
 ## Control de Versiones y Deltas para Cada Dataset
