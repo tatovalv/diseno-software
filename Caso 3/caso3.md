@@ -1,10 +1,11 @@
 # Caso 3
 
 # Group name - Jami Pura Vida
+
 Marcelo Gomez
+Luis Masis
 Isaac Rojas
 Juan Carlos Valverde
-Luis Masis
 
 
 # Definición de la Arquitectura
@@ -157,6 +158,8 @@ Este factor cosiste en dividir el ambiente de trabajo en **ambiente de producci�
 
 ### Monitoreo y auditoría
 Este factor cuenta con varias tecnologías de AWS GuardDuty y AWS Macie que detectan comportamientos anómalos e identifica exposición de datos sensibles.
+
+_______________________________________________________________
 
 ## Control de Versiones y Deltas para Cada Dataset
 
@@ -380,3 +383,154 @@ Tecnologías: Amazon S3, AWS Glue, Redshift (opcional).
 Se encarga de registrar todo lo que sucede: desde el origen del dataset, hasta cada transformación y decisión tomada por el LLM. Provee trazabilidad completa para auditoría, debugging y control de calidad.
 
 Tecnologías: AWS CloudWatch Logs, DynamoDB.
+_________________________________________________________________
+
+## Arquitectura del Motor de Prompts para Consultas Inteligentes
+
+Uno de los objetivos más innovadores del proyecto *JAMI Pura Vida* es permitir a los usuarios consultar datos por medio de lenguaje natural, sin necesidad de escribir código o armar consultas técnicas.
+
+Para eso, se plantea el diseño de un motor de prompts, que sirva como puente entre lo que el usuario pide con sus palabras y las visualizaciones que necesita ver. Es decir, un sistema capaz de traducir una pregunta como “Mostrame el crecimiento mensual de nuevas empresas registradas en el GAM” en un dashboard generado automáticamente, respetando siempre los permisos de acceso que tenga ese usuario.
+
+Este motor debe ser flexible, seguro y capaz de conectarse a la base de datos o datalake según corresponda, procesar la información, y generar visualizaciones que respondan directamente al prompt.
+
+### Arquitectura general del Motor de Prompts
+
+El motor está compuesto por distintos módulos que trabajan juntos para convertir un prompt en una visualización válida y útil:
+
+![imagen](Recursos/Prompts.drawio.png)
+ 
+Se va a implementar un patrón de agentes, en este caso el Patrón Planner-Executor. Este patrón se utiliza dando un enfoque en donde las tareas complejas se dividen en dos etapas claras; **planificación y ejecución**.
+
+En el contexto de *JAMI Pura Vida*, el patrón Planner-Executor permite que el motor de prompts reciba una consulta en lenguaje natural, genere un plan seguro y autorizado (planning), y luego lo convierta en una visualización útil, cumpliendo con las reglas de seguridad y acceso definidas (execution).
+
+### 1. PromptAgent (Agente coordinador)
+
+Es el núcleo del motor. Es quien recibe el prompt del usuario y coordina todo lo que pasa después. No interpreta el prompt directamente, pero sabe a quién debe enviárselo y en qué orden deben ejecutarse los pasos. También es responsable de enviarle al usuario la visualización final.
+
+Ejemplo:
+ Recibe el mensaje:
+
+ ```sh
+ “Quiero ver el crecimiento mensual de empresas en Heredia”.
+```
+
+→ Llama al PromptPlanner, después al SecurityValidator, luego al QueryExecutor, etc.
+
+### 2. PromptPlanner (Planificador del prompt)
+
+Este componente lee el texto del usuario e interpreta su intención. Su trabajo es convertir el lenguaje natural en un “plan de acción”, que normalmente incluye:
+
+•	Qué datos buscar.
+
+•	Qué filtros aplicar (ej. región, fechas).
+
+•	Qué métrica usar (ej. conteo, promedio).
+
+•	Qué tipo de visualización puede representar mejor ese resultado.
+
+
+El PromptPlanner puede generar un plan tipo:
+
+```sh
+{
+  "dataset": "empresas",
+  "filtro": "provincia = 'Heredia'",
+  "agrupado_por": "mes",
+  "métrica": "cantidad_registros",
+  "visualización": "gráfico de líneas"
+}
+```
+
+### 3. SecurityValidator (Validador de seguridad y permisos)
+
+Antes de ejecutar cualquier consulta, el plan debe pasar por una validación de seguridad. Este módulo:
+
+•	Verifica si el usuario tiene acceso al dataset solicitado.
+
+•	Revisa si los filtros (por región, institución o nivel de detalle) son válidos.
+
+•	Bloquea o ajusta el plan si hay riesgos (por ejemplo, datos sensibles, columnas restringidas).
+
+
+Ejemplo:
+
+ Un ciudadano pide ver “datos individuales de ingresos”.
+ 
+ → El SecurityValidator detecta que eso no está permitido y modifica el plan para mostrar solamente promedios agrupados.
+ 
+### 4. QueryExecutor (Ejecutor de consulta)
+
+Este componente transforma el plan aprobado en una consulta real (por ejemplo, SQL o consulta en Athena), la ejecuta y devuelve los resultados.
+
+•	Si hay errores en la ejecución, los reporta.
+
+•	Si hay mucha información, puede aplicar paginación o resumir.
+
+•	Se conecta a las fuentes: S3, Redshift, DynamoDB, etc.
+
+
+Ejemplo:
+
+ A partir del plan, genera esta consulta:
+
+```sh 
+SELECT mes, COUNT(*) as total
+FROM empresas
+WHERE provincia = 'Heredia'
+GROUP BY mes
+ORDER BY mes ASC;
+```
+
+### 5. VisualizationBuilder (Constructor de visualización)
+
+Toma los resultados crudos (tabla, números, agrupaciones) y decide automáticamente qué tipo de gráfico o componente visual mostrar al usuario.
+
+•	Usa lógica basada en el tipo de dato (tiempo, categorías, números).
+
+•	Puede generar gráficos de líneas, barras, tortas, tablas ordenadas, mapas, etc.
+
+•	Se asegura de que la visualización sea clara, útil y entendible.
+
+
+Ejemplo:
+
+ Si los datos tienen fechas en orden, genera un gráfico de líneas.
+ 
+ Si hay categorías, genera barras o torta.
+
+### 6. PromptResponseEngine (Motor de respuesta)
+
+Este módulo empaqueta todo el resultado (visualización, metadatos, contexto) y lo entrega al usuario, normalmente dentro de la interfaz de la aplicación.
+
+•	También puede incluir la explicación de qué datos se usaron, de qué fuente, y cómo se calculó el resultado.
+
+•	Si hubo ajustes en el prompt por seguridad, puede informarle al usuario.
+
+
+Ejemplo:
+
+ El usuario pidió algo y se devuelve:
+
+```sh 
+"Gráfico generado con datos de empresas registradas en Heredia, agrupadas por mes. Última actualización: mayo 2024."
+```
+
+### Seguridad y control de accesos
+
+Uno de los aspectos más importantes en un sistema que permite acceder a datos mediante lenguaje natural es asegurarse de que cada usuario solo vea lo que le corresponde, sin importar qué tan específica o ambigua sea la consulta que haga.
+
+El motor de prompts implementa seguridad en distintos niveles:
+
+1.	Validación por rol y perfil: Antes de ejecutar cualquier consulta, se consulta el rol del usuario (por ejemplo: ciudadano, analista, institución pública) y se define qué datasets puede ver, qué columnas están disponibles y a qué nivel de detalle puede acceder.
+
+
+2.	Catálogo de datos controlado: El modelo de lenguaje no tiene acceso libre a todas las tablas. Solo puede trabajar con un catálogo de datos documentado, que define qué columnas y tablas están disponibles para cada tipo de usuario.
+
+
+3.	Filtrado automático según contexto: Incluso si un usuario puede acceder a un dataset, el sistema puede aplicar automáticamente filtros adicionales (como restringirlo a su provincia, cantón o institución) para respetar las políticas internas de acceso.
+
+
+4.	Auditoría y trazabilidad: Cada prompt, consulta generada y respuesta visual se registra con metadatos como usuario, fecha, origen, tipo de acceso y resultado. Esto permite revisar o auditar cualquier consulta posterior.
+
+
+5.	Bloqueo y reformulación de prompts sensibles: Si un prompt intenta acceder a datos restringidos (por ejemplo: “mostrame ingresos por persona en mi distrito”), el sistema puede reformular automáticamente la consulta o negarla, manteniendo siempre la trazabilidad del intento.
