@@ -1,10 +1,12 @@
-# Caso 3
+# *JAMI Pura Vida*
 
-# Group name - Jami Pura Vida
-
+## Integrantes
 Marcelo Gomez
+
 Luis Masis
+
 Isaac Rojas
+
 Juan Carlos Valverde
 
 
