@@ -14,6 +14,8 @@ Juan Carlos Valverde
 
 La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistema nacional de datos que permita a instituciones públicas, empresas privadas y ciudadanos compartir, acceder y utilizar información de manera fácil, segura y eficiente. Este documento describe la arquitectura técnica base del sistema, detallando sus componentes clave (como bases de datos, interfaces y protocolos de seguridad) y cómo estos se integran para garantizar que los datos sean interoperables (compatibles entre diferentes sistemas), protegidos contra riesgos y accesibles para quienes los necesiten. El objetivo es sentar las bases de una infraestructura que impulse la transparencia, la innovación y la toma de decisiones basada en evidencia, beneficiando a todo el país.
 
+# Arquitectura Global
+
 # Definición de la Arquitectura
 
 ## Objetivos de la Arquitectura
@@ -470,9 +472,129 @@ jobs:
         function_name: data-pura-vida-dev
         zip_file: dist/lambda.zip
 ```
+-----------------------------------
+# Datos, Datalakes e Interoperabilidad
 
 
-# Diseño de Llave Criptográfica Tripartita
+
+---------------
+# Seguridad, Cumplimiento y Cifrado
+
+## Política de Cifrado en Reposo y en Tránsito para Data Pura Vida
+### Relación con la Arquitectura General
+La presente política es consistente con la arquitectura técnica definida para la plataforma Data Pura Vida. En especial:
+- Data Lake (Amazon S3): Cifrado en reposo utilizando AWS SSE-KMS, protegiendo datasets estructurados y semiestructurados.
+- Base de Datos Transaccional (PostgreSQL en Amazon RDS): Cifrado activado con llaves gestionadas por AWS KMS.
+- DynamoDB: Cifrado automático de datos con AWS KMS.
+- Servicios de seguridad: Se utilizará AWS CloudHSM para el manejo avanzado de llaves y AWS Secrets Manager para almacenamiento seguro de credenciales.
+- Sistema de Seguridad: Aplicación de control de accesos basado en roles (RBAC) y atributos (ABAC) soportados por Amazon Cognito.
+
+### Cifrado de Datos en Reposo
+Ámbitos de Aplicación
+Data Lake (Amazon S3): Uso de SSE-KMS para cifrado automático de objetos.
+PostgreSQL (Amazon RDS): Cifrado activado en instancia.
+DynamoDB: Cifrado con llaves gestionadas por KMS.
+Field-Level Encryption: Solo campos sensibles (PII) serán cifrados para optimizar performance.
+Amazon Macie: Identificación automática de datos sensibles.
+Gestión de Llaves Criptográficas
+Llave Tripartita:
+Generación: AWS KMS genera la llave maestra.
+División: Shamir’s Secret Sharing (SSS) en 3 partes.
+Almacenamiento:
+  - Parte 1: AWS Secrets Manager.
+  - Parte 2 y 3: Custodios externos validados (representante legal y contralor independiente).
+Recuperación:
+  - Mínimo 2 partes requeridas.
+  - Funciones AWS Lambda con credenciales temporales para uso en memoria.
+Aplicación:
+  - Reconstrucción temporal para desencriptar datasets sensibles.
+  - Eliminación inmediata de material sensible post-operación.
+
+### Cifrado de Datos en Tránsito
+Ámbitos de Aplicación
+Comunicación entre usuarios y plataforma: HTTPS/TLS 1.2+.
+Comunicación entre microservicios: mTLS (mutual TLS).
+Transferencias externas: Protocolos seguros (SFTP, HTTPS).
+Tecnologías y Herramientas
+Amazon API Gateway: Protección de APIs.
+AWS WAF: Firewall de aplicaciones web.
+Amazon Cognito: Autenticación OAuth2, MFA.
+AWS ACM: Certificados SSL/TLS gestionados.
+Control de Acceso
+Modelo Zero Trust: Validación continua de identidad y contexto.
+Just-in-Time Access: Credenciales temporales.
+Logging: AWS CloudWatch para registros de acceso y operaciones.
+
+### Cumplimiento Normativo
+| Normativa     | Práctica Aplicada                                                   | Implementación en Código/Plataforma                              |
+|:--------------|:--------------------------------------------------------------------|:-----------------------------------------------------------------|
+| Ley 8968 (CR) | Registro y gestión de consentimientos explícitos.                   | API /consent; almacenar timestamp, usuario, tipo en PostgreSQL.  |
+| GDPR          | Derecho al olvido.                                                  | Endpoint DELETE /user/{id}; borrado físico en BD y audit logs.   |
+| ISO/IEC 27001 | Registro de accesos, control estricto de roles, auditoría continua. | AWS CloudTrail para logs de acceso; roles RBAC en Cognito y IAM. |
+
+#### Código Ejemplo para Gestión de Consentimiento
+![imagen](Recursos/Código_Ejemplo_Gestión_Consentimiento.png)
+
+#### Código Ejemplo para Derecho al Olvido
+![imagen](Recursos/Código_Ejemplo_Derecho_Olvido.png)
+
+### Principios Fundamentales de la Política
+- Cifrado Obligatorio: Datos sensibles cifrados en reposo y tránsito.
+- Rotación de Llaves: Conforme a estándares internacionales.
+- Justificación de Accesos: Basado en roles y atributos.
+- Minimización de Exposición: Mínimo acceso necesario.
+- Auditoría Continua: Registros y monitoreo constante.
+
+
+### Configuración en AWS y Evidencia Visual
+#### Amazon S3 – Cifrado en Reposo (SSE-KMS)
+Ubicación: S3 > Bucket > Propiedades > Cifrado
+- Activar cifrado del lado del servidor (SSE-KMS)
+- Seleccionar o crear una llave KMS personalizada o gestionada por AWS
+- Aplicar la política a todos los objetos nuevos
+Agregar Screen
+
+#### Amazon RDS – PostgreSQL
+Ubicación: RDS > Crear base de datos > Configuración de almacenamiento
+- Habilitar cifrado al crear la instancia
+- Seleccionar llave KMS
+ Agregar Screen
+
+#### DynamoDB – Cifrado
+Ubicación: DynamoDB > Tablas > Propiedades > Encryption
+- Tipo de cifrado: AWS managed CMK (SSE-KMS)
+Agregar Screen 
+
+#### AWS KMS – Llave Tripartita
+Ubicación: AWS KMS > Claves
+- Crear una nueva llave simétrica
+- Configurar acceso por políticas IAM específicas
+Agregar Screen 
+
+#### Secrets Manager – Almacenamiento de partes de llave
+Ubicación: Secrets Manager > Crear secreto
+- Guardar una de las partes generadas por Shamir’s Secret Sharing
+Agregar Screen 
+
+#### API Gateway + ACM – Cifrado en Tránsito
+Ubicación: API Gateway > Dominios personalizados
+- Vincular certificado SSL generado en ACM
+- Forzar HTTPS-only
+Agregar Screen 
+
+#### CloudTrail y CloudWatch – Auditoría y Logs
+Ubicación: CloudTrail > Trails / CloudWatch > Log Groups
+- Verificar habilitación en todas las regiones
+- Configurar retención de logs y métricas
+Agregar Screen 
+
+#### Cognito & IAM – Control de Acceso
+Ubicación: Cognito > User Pools / IAM > Roles y políticas
+- Habilitar MFA y segmentación de grupos
+- Aplicar políticas de acceso basadas en atributos (ABAC)
+Agregar Screen 
+
+## Diseño de Llave Criptográfica Tripartita
 Las llaves tripartitas en el contexto de este sistema van a ser de utilidad para proteger las claves criptográficas generadas distribuyendo una parte a Data Pura Vida y las otras dos a personas, entidades, etc. definidas por el usuario.
 
 El sistema propuesto para implementar esta llave utiliza AWS KMS y CloudHSM para la administración de las claves simétricas y asimétricas creadas y el algoritmo [SSS](https://www.geeksforgeeks.org/shamirs-secret-sharing-algorithm-cryptography/) (Shamir's Secret Sharing) para la división e implementación de la llave, este algoritmo divide la clave en la cantidad de partes que se deseen (en este caso van a ser tres) y asegura que se necesiten al menos dos o incluso las tres partes para reconstruir la clave. En este caso se van a tener que utilizar dos partes por razones de redundancia.
@@ -638,120 +760,8 @@ macie.create_classification_job(
 )
 ```
 
-## Política de Cifrado en Reposo y en Tránsito para Data Pura Vida
-### Relación con la Arquitectura General
-La presente política es consistente con la arquitectura técnica definida para la plataforma Data Pura Vida. En especial:
-- Data Lake (Amazon S3): Cifrado en reposo utilizando AWS SSE-KMS, protegiendo datasets estructurados y semiestructurados.
-- Base de Datos Transaccional (PostgreSQL en Amazon RDS): Cifrado activado con llaves gestionadas por AWS KMS.
-- DynamoDB: Cifrado automático de datos con AWS KMS.
-- Servicios de seguridad: Se utilizará AWS CloudHSM para el manejo avanzado de llaves y AWS Secrets Manager para almacenamiento seguro de credenciales.
-- Sistema de Seguridad: Aplicación de control de accesos basado en roles (RBAC) y atributos (ABAC) soportados por Amazon Cognito.
-
-### Cifrado de Datos en Reposo
-Ámbitos de Aplicación
-Data Lake (Amazon S3): Uso de SSE-KMS para cifrado automático de objetos.
-PostgreSQL (Amazon RDS): Cifrado activado en instancia.
-DynamoDB: Cifrado con llaves gestionadas por KMS.
-Field-Level Encryption: Solo campos sensibles (PII) serán cifrados para optimizar performance.
-Amazon Macie: Identificación automática de datos sensibles.
-Gestión de Llaves Criptográficas
-Llave Tripartita:
-Generación: AWS KMS genera la llave maestra.
-División: Shamir’s Secret Sharing (SSS) en 3 partes.
-Almacenamiento:
-  - Parte 1: AWS Secrets Manager.
-  - Parte 2 y 3: Custodios externos validados (representante legal y contralor independiente).
-Recuperación:
-  - Mínimo 2 partes requeridas.
-  - Funciones AWS Lambda con credenciales temporales para uso en memoria.
-Aplicación:
-  - Reconstrucción temporal para desencriptar datasets sensibles.
-  - Eliminación inmediata de material sensible post-operación.
-
-### Cifrado de Datos en Tránsito
-Ámbitos de Aplicación
-Comunicación entre usuarios y plataforma: HTTPS/TLS 1.2+.
-Comunicación entre microservicios: mTLS (mutual TLS).
-Transferencias externas: Protocolos seguros (SFTP, HTTPS).
-Tecnologías y Herramientas
-Amazon API Gateway: Protección de APIs.
-AWS WAF: Firewall de aplicaciones web.
-Amazon Cognito: Autenticación OAuth2, MFA.
-AWS ACM: Certificados SSL/TLS gestionados.
-Control de Acceso
-Modelo Zero Trust: Validación continua de identidad y contexto.
-Just-in-Time Access: Credenciales temporales.
-Logging: AWS CloudWatch para registros de acceso y operaciones.
-
-### Cumplimiento Normativo
-| Normativa     | Práctica Aplicada                                                   | Implementación en Código/Plataforma                              |
-|:--------------|:--------------------------------------------------------------------|:-----------------------------------------------------------------|
-| Ley 8968 (CR) | Registro y gestión de consentimientos explícitos.                   | API /consent; almacenar timestamp, usuario, tipo en PostgreSQL.  |
-| GDPR          | Derecho al olvido.                                                  | Endpoint DELETE /user/{id}; borrado físico en BD y audit logs.   |
-| ISO/IEC 27001 | Registro de accesos, control estricto de roles, auditoría continua. | AWS CloudTrail para logs de acceso; roles RBAC en Cognito y IAM. |
-
-#### Código Ejemplo para Gestión de Consentimiento
-![imagen](Recursos/Código_Ejemplo_Gestión_Consentimiento.png)
-
-#### Código Ejemplo para Derecho al Olvido
-![imagen](Recursos/Código_Ejemplo_Derecho_Olvido.png)
-
-### Principios Fundamentales de la Política
-- Cifrado Obligatorio: Datos sensibles cifrados en reposo y tránsito.
-- Rotación de Llaves: Conforme a estándares internacionales.
-- Justificación de Accesos: Basado en roles y atributos.
-- Minimización de Exposición: Mínimo acceso necesario.
-- Auditoría Continua: Registros y monitoreo constante.
-
-
-### Configuración en AWS y Evidencia Visual
-#### Amazon S3 – Cifrado en Reposo (SSE-KMS)
-Ubicación: S3 > Bucket > Propiedades > Cifrado
-- Activar cifrado del lado del servidor (SSE-KMS)
-- Seleccionar o crear una llave KMS personalizada o gestionada por AWS
-- Aplicar la política a todos los objetos nuevos
-Agregar Screen
-
-#### Amazon RDS – PostgreSQL
-Ubicación: RDS > Crear base de datos > Configuración de almacenamiento
-- Habilitar cifrado al crear la instancia
-- Seleccionar llave KMS
- Agregar Screen
-
-#### DynamoDB – Cifrado
-Ubicación: DynamoDB > Tablas > Propiedades > Encryption
-- Tipo de cifrado: AWS managed CMK (SSE-KMS)
-Agregar Screen 
-
-#### AWS KMS – Llave Tripartita
-Ubicación: AWS KMS > Claves
-- Crear una nueva llave simétrica
-- Configurar acceso por políticas IAM específicas
-Agregar Screen 
-
-#### Secrets Manager – Almacenamiento de partes de llave
-Ubicación: Secrets Manager > Crear secreto
-- Guardar una de las partes generadas por Shamir’s Secret Sharing
-Agregar Screen 
-
-#### API Gateway + ACM – Cifrado en Tránsito
-Ubicación: API Gateway > Dominios personalizados
-- Vincular certificado SSL generado en ACM
-- Forzar HTTPS-only
-Agregar Screen 
-
-#### CloudTrail y CloudWatch – Auditoría y Logs
-Ubicación: CloudTrail > Trails / CloudWatch > Log Groups
-- Verificar habilitación en todas las regiones
-- Configurar retención de logs y métricas
-Agregar Screen 
-
-#### Cognito & IAM – Control de Acceso
-Ubicación: Cognito > User Pools / IAM > Roles y políticas
-- Habilitar MFA y segmentación de grupos
-- Aplicar políticas de acceso basadas en atributos (ABAC)
-Agregar Screen 
-
+-----------------
+# Visualizacion y Monitoreo
 
 # Sistema de Métricas, Consumo y Alertas
 El sistema de módulos planteados a continuación busca proporcionar una visión completa del sistema comenzando por la métricas más críticas con la posibilidad de agregar las que se necesiten según se considere necesario. 
@@ -778,7 +788,99 @@ Este módulo consiste en desbordas de métricas como disponibilidad del sistema 
 
 ## 3. Módulos de Visualización y Alertas
 Este módulo va a contar con ciertos dashboards, widgets, gráficos etc. que van a servir para visualizar la salud del sistema, monitorear el uso de recursos y crear alertas si se presenta un problema de seguridad.
-_______________________________________________________________
+
+## Arquitectura del Portal de BackOffice
+
+## Funciones clave del portal
+
+| Funcionalidad             | Descripción                                                                 |
+|--------------------------|------------------------------------------------------------------------------|
+| Gestión de registros     | Validar o rechazar solicitudes de registro de usuarios y entidades.         |
+| Gestión de llaves        | Generar, dividir, revocar o reasignar llaves simétricas, asimétricas y tripartitas. |
+| Monitoreo de cargas      | Visualizar flujos de datos, estados, errores, volumen y métricas de integridad. |
+| Auditoría de operaciones | Consultar logs detallados de quién hizo qué, cuándo y con qué efecto.       |
+| Reversibilidad           | Permitir anular, revertir o rehacer acciones críticas si se justifica.      |
+| Gestión de roles y permisos | Asignar perfiles a operadores, definir visibilidad y niveles de aprobación. |
+| Generación de reportes   | Crear reportes detallados para análisis técnico o cumplimiento normativo.   |
+
+---
+
+## Arquitectura del sistema
+
+### Componentes principales
+
+| Componente         | Descripción técnica                                                               |
+|--------------------|------------------------------------------------------------------------------------|
+| Autenticación      | Integración con Amazon Cognito (MFA + RBAC)                                       |
+| Backend API        | Exposición de servicios administrativos vía endpoints protegidos (REST o GraphQL) |
+| Base de Datos      | PostgreSQL o DynamoDB con acceso segmentado por tipo de acción                    |
+| Registro de logs   | CloudWatch Logs + CloudTrail para auditoría interna                               |
+| Orquestación       | Lambda Functions o microservicios para tareas reversibles o asíncronas            |
+| Panel de métricas  | Dashboards internos con métricas (CloudWatch, Prometheus, Grafana si aplica)     |
+
+
+
+## Control de acceso (RBAC)
+
+| Rol del operador        | Permisos asignados                                                               |
+|-------------------------|----------------------------------------------------------------------------------|
+| Validador               | Aprobar/rechazar registros nuevos                                                |
+| Administrador de llaves | Gestionar llaves, ver custodios, auditar firmas                                 |
+| Auditor                 | Consultar logs, generar reportes de actividad                                    |
+| Supervisor              | Editar configuraciones, activar/desactivar flujos de integración                 |
+| Superadmin              | Ver y hacer todo; incluido revertir operaciones pasadas                          |
+
+Los permisos están jerarquizados y condicionados al contexto de cada entidad (ej: solo puedo ver datos de mi jurisdicción).
+
+
+
+## Reversibilidad y control de errores
+
+- Toda acción crítica tendrá una referencia de operación única.
+- Se registrarán acciones con:
+  - Quién la ejecutó
+  - Fecha y hora exacta
+  - Resultado del proceso
+- Las operaciones reversibles deben:
+  - Tener lógica de deshacer (rollback, soft delete, estado anterior)
+  - Contar con confirmación de 2 operadores o autorización de un supervisor
+
+### Diseño de la Bitácora de Reversibilidad y Control de Errores
+
+| Campo                    | Tipo de dato             | Descripción                                                                 |
+|--------------------------|--------------------------|-----------------------------------------------------------------------------|
+| `operation_id`           | UUID / Texto             | Identificador único de la operación.                                        |
+| `timestamp`              | FechaHora (ISO 8601)     | Fecha y hora exacta en que se ejecutó la operación.                         |
+| `executed_by_user_id`    | Texto / UUID             | ID del usuario que ejecutó la acción.                                       |
+| `user_role`              | Texto                    | Rol del usuario al momento de la acción.                                    |
+| `user_ip`                | IP (Texto)               | Dirección IP desde la cual se ejecutó la operación.                         |
+| `entity_context`         | Texto                    | Entidad u organización asociada al contexto de la acción.                   |
+| `operation_type`         | Enum                     | Tipo de acción (CREATE, UPDATE, DELETE, REVERT, APPROVE, REJECT).           |
+| `operation_target`       | Texto                    | Objeto afectado (usuario, dataset, llave, configuración, etc.).             |
+| `target_id`              | Texto / UUID             | ID o referencia del objeto afectado.                                        |
+| `previous_state`         | JSON (opcional)          | Estado anterior al cambio (para permitir reversión).                        |
+| `new_state`              | JSON (opcional)          | Estado posterior al cambio.                                                 |
+| `is_reversible`          | Booleano                 | Indica si la operación puede revertirse.                                    |
+| `reversal_token`         | UUID / Texto (opcional)  | Token para reversión, si aplica.                                            |
+| `reversed_by_user_id`    | Texto / UUID (opcional)  | Usuario que realizó la reversión (si ocurrió).                              |
+| `reversed_timestamp`     | FechaHora (opcional)     | Fecha y hora en que se revirtió la operación.                               |
+| `requires_supervisor_auth`| Booleano                | Si requiere doble validación o autorización de supervisor.                  |
+| `reason_or_comment`      | Texto                    | Motivo u observación registrada por el operador.                            |
+| `status`                 | Enum                     | Estado final de la operación (SUCCESS, FAILED, REVERTED, PENDING).          |
+| `audit_signature`        | Texto (hash o firma)     | Firma digital para asegurar la integridad del registro.                     |
+
+## Auditoría y trazabilidad
+
+- Logs almacenados con nivel de detalle:
+  - Usuario, IP, acción, resultado, motivo
+- Todas las operaciones serán auditables vía filtros por fecha, tipo y resultado.
+- Se rastrearán cambios de configuración, llaves, permisos y accesos.
+- Los logs se podrán visualizar desde el portal y exportar con autorización.
+- Los reportes de trazabilidad podrán descargarse en formato PDF o CSV con firma digital.
+
+## Diagrama Arquitectura Portal Backoffice
+![imagen](Recursos/DiagramaArquitecturaPortalBackOffice.png)
+
 
 
 ## Especificación de Interfaces de Ingesta de Datos Externos
@@ -1309,94 +1411,3 @@ configurados en Lake Formation, solo permiten lectura controlada (con RLS) y no 
 
 
 
-# Arquitectura del Portal de BackOffice
-
-## Funciones clave del portal
-
-| Funcionalidad             | Descripción                                                                 |
-|--------------------------|------------------------------------------------------------------------------|
-| Gestión de registros     | Validar o rechazar solicitudes de registro de usuarios y entidades.         |
-| Gestión de llaves        | Generar, dividir, revocar o reasignar llaves simétricas, asimétricas y tripartitas. |
-| Monitoreo de cargas      | Visualizar flujos de datos, estados, errores, volumen y métricas de integridad. |
-| Auditoría de operaciones | Consultar logs detallados de quién hizo qué, cuándo y con qué efecto.       |
-| Reversibilidad           | Permitir anular, revertir o rehacer acciones críticas si se justifica.      |
-| Gestión de roles y permisos | Asignar perfiles a operadores, definir visibilidad y niveles de aprobación. |
-| Generación de reportes   | Crear reportes detallados para análisis técnico o cumplimiento normativo.   |
-
----
-
-## Arquitectura del sistema
-
-### Componentes principales
-
-| Componente         | Descripción técnica                                                               |
-|--------------------|------------------------------------------------------------------------------------|
-| Autenticación      | Integración con Amazon Cognito (MFA + RBAC)                                       |
-| Backend API        | Exposición de servicios administrativos vía endpoints protegidos (REST o GraphQL) |
-| Base de Datos      | PostgreSQL o DynamoDB con acceso segmentado por tipo de acción                    |
-| Registro de logs   | CloudWatch Logs + CloudTrail para auditoría interna                               |
-| Orquestación       | Lambda Functions o microservicios para tareas reversibles o asíncronas            |
-| Panel de métricas  | Dashboards internos con métricas (CloudWatch, Prometheus, Grafana si aplica)     |
-
-
-
-## Control de acceso (RBAC)
-
-| Rol del operador        | Permisos asignados                                                               |
-|-------------------------|----------------------------------------------------------------------------------|
-| Validador               | Aprobar/rechazar registros nuevos                                                |
-| Administrador de llaves | Gestionar llaves, ver custodios, auditar firmas                                 |
-| Auditor                 | Consultar logs, generar reportes de actividad                                    |
-| Supervisor              | Editar configuraciones, activar/desactivar flujos de integración                 |
-| Superadmin              | Ver y hacer todo; incluido revertir operaciones pasadas                          |
-
-Los permisos están jerarquizados y condicionados al contexto de cada entidad (ej: solo puedo ver datos de mi jurisdicción).
-
-
-
-## Reversibilidad y control de errores
-
-- Toda acción crítica tendrá una referencia de operación única.
-- Se registrarán acciones con:
-  - Quién la ejecutó
-  - Fecha y hora exacta
-  - Resultado del proceso
-- Las operaciones reversibles deben:
-  - Tener lógica de deshacer (rollback, soft delete, estado anterior)
-  - Contar con confirmación de 2 operadores o autorización de un supervisor
-
-### Diseño de la Bitácora de Reversibilidad y Control de Errores
-
-| Campo                    | Tipo de dato             | Descripción                                                                 |
-|--------------------------|--------------------------|-----------------------------------------------------------------------------|
-| `operation_id`           | UUID / Texto             | Identificador único de la operación.                                        |
-| `timestamp`              | FechaHora (ISO 8601)     | Fecha y hora exacta en que se ejecutó la operación.                         |
-| `executed_by_user_id`    | Texto / UUID             | ID del usuario que ejecutó la acción.                                       |
-| `user_role`              | Texto                    | Rol del usuario al momento de la acción.                                    |
-| `user_ip`                | IP (Texto)               | Dirección IP desde la cual se ejecutó la operación.                         |
-| `entity_context`         | Texto                    | Entidad u organización asociada al contexto de la acción.                   |
-| `operation_type`         | Enum                     | Tipo de acción (CREATE, UPDATE, DELETE, REVERT, APPROVE, REJECT).           |
-| `operation_target`       | Texto                    | Objeto afectado (usuario, dataset, llave, configuración, etc.).             |
-| `target_id`              | Texto / UUID             | ID o referencia del objeto afectado.                                        |
-| `previous_state`         | JSON (opcional)          | Estado anterior al cambio (para permitir reversión).                        |
-| `new_state`              | JSON (opcional)          | Estado posterior al cambio.                                                 |
-| `is_reversible`          | Booleano                 | Indica si la operación puede revertirse.                                    |
-| `reversal_token`         | UUID / Texto (opcional)  | Token para reversión, si aplica.                                            |
-| `reversed_by_user_id`    | Texto / UUID (opcional)  | Usuario que realizó la reversión (si ocurrió).                              |
-| `reversed_timestamp`     | FechaHora (opcional)     | Fecha y hora en que se revirtió la operación.                               |
-| `requires_supervisor_auth`| Booleano                | Si requiere doble validación o autorización de supervisor.                  |
-| `reason_or_comment`      | Texto                    | Motivo u observación registrada por el operador.                            |
-| `status`                 | Enum                     | Estado final de la operación (SUCCESS, FAILED, REVERTED, PENDING).          |
-| `audit_signature`        | Texto (hash o firma)     | Firma digital para asegurar la integridad del registro.                     |
-
-## Auditoría y trazabilidad
-
-- Logs almacenados con nivel de detalle:
-  - Usuario, IP, acción, resultado, motivo
-- Todas las operaciones serán auditables vía filtros por fecha, tipo y resultado.
-- Se rastrearán cambios de configuración, llaves, permisos y accesos.
-- Los logs se podrán visualizar desde el portal y exportar con autorización.
-- Los reportes de trazabilidad podrán descargarse en formato PDF o CSV con firma digital.
-
-## Diagrama Arquitectura Portal Backoffice
-![imagen](Recursos/DiagramaArquitecturaPortalBackOffice.png)
