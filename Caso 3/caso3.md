@@ -142,7 +142,8 @@ Reglas aplicadas con estos campos:
 Ejemplo de política de acceso
 ```mysql
 WHERE organizacion_id IN (autorizadas_por_usuario_actual)
-  AND (share_id IS NULL OR share_id IN (tokens_autorizados))```
+  AND (share_id IS NULL OR share_id IN (tokens_autorizados))
+```
 
 ## Diagrama de control de acceso por datos
 
