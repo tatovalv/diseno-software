@@ -10,11 +10,11 @@ Isaac Rojas
 Juan Carlos Valverde
 
 
-# Definición de la Arquitectura
-
-## Introducción
+# Introducción
 
 La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistema nacional de datos que permita a instituciones públicas, empresas privadas y ciudadanos compartir, acceder y utilizar información de manera fácil, segura y eficiente. Este documento describe la arquitectura técnica base del sistema, detallando sus componentes clave (como bases de datos, interfaces y protocolos de seguridad) y cómo estos se integran para garantizar que los datos sean interoperables (compatibles entre diferentes sistemas), protegidos contra riesgos y accesibles para quienes los necesiten. El objetivo es sentar las bases de una infraestructura que impulse la transparencia, la innovación y la toma de decisiones basada en evidencia, beneficiando a todo el país.
+
+# Definición de la Arquitectura
 
 ## Objetivos de la Arquitectura
 
@@ -83,7 +83,106 @@ Mitigación propuesta: Integración temprana con asesoría legal para auditoría
 4. Seguridad de datos en ambientes técnicos	
 Mitigación propuesta: Políticas Zero Trust + cifrado forzado en todas las capas
 
-## Diseño de Llave Criptográfica Tripartita
+# Modelo de Gobernanza de Seguridad y Accesos
+
+1. Autenticación y verificación de identidad
+
+| Elemento                               | Implementación propuesta                |
+|----------------------------------------|-----------------------------------------|
+| Registro inicial	                     | Validación con cédula, biometría, prueba de vida e IP de Costa Rica             |
+| Login	                                 | Usuario + contraseña + Autenticación Multifactor (MFA)                      |
+| Validación reforzada	                 | En caso de transacciones sensibles, requerir doble MFA o token por app |
+| Identificación de dispositivos	     | Huella de navegador/IP, posibilidad de marcar IP como fija o temporal                   |
+
+Tecnología recomendada: Amazon Cognito + AWS WAF para bloqueo por IP + Amazon GuardDuty para anomalías.
+
+2. Modelo de Control de Acceso (RBAC + Contexto)
+
+Definición de Roles Base:
+
+| Rol                                    | Permisos principales               |
+|----------------------------------------|-----------------------------------------|
+| Usuario Básico	                     | Visualizar datasets públicos, gestionar perfil y crear dashboards personales.            |
+| Proveedor de Datos	                 | Subir, editar y configurar datasets; definir reglas de acceso y monetización.                      |
+| Comprador de Datos	                 | Acceder a datasets adquiridos, consumirlos vía dashboards, gestionar límites. |
+| Administrador de Entidad	             | Gestionar organización, usuarios asociados, llaves y autorizaciones.                   |
+| Auditor Interno       	             | Visualizar logs, métricas, y generar reportes de actividad por usuario.                   |
+| Operador (Backoffice) 	             | Validar registros, gestionar flujos de carga, revisar accesos y generar reportes.                   |
+| Superadmin del sistema	             | Control total: gestionar entidades, revocar accesos, regenerar llaves, visualizar todo.                   |
+
+Contexto Adicional de Acceso:
+
+| Contexto evaluado                      | Ejemplo de regla aplicada               |
+|----------------------------------------|-----------------------------------------|
+| Ubicación geográfica                   | Registro solo desde Costa Rica; acceso externo con IP declarada.            |
+| Dispositivo / IP  	                 | Se restringe acceso a ciertas funciones desde IPs públicas o redes no confiables.       |
+| Frecuencia de uso 	                 | Mecanismo de rate limiting si un usuario excede el uso permitido. |
+| Tipo de operación     	             | Operaciones sensibles como descifrado requieren autenticación reforzada.                  |
+
+Motor de políticas contextualizadas puede ser implementado con AWS Identity Center + reglas personalizadas vía Lambda.
+
+3. Restricción de Accesos a Nivel de Datos
+El modelo de seguridad incluye segmentación de acceso granular basada en entidad, usuario y nivel de autorización. Para garantizar un control completo sobre la visibilidad y trazabilidad de cada dataset, se definen campos mínimos obligatorios que deben estar presentes en todos los datasets cargados en la plataforma.
+
+Campos requeridos en todos los datasets para aplicar reglas de gobernanza:
+
+| Campo                      | Descripción               | Tipo de control asociado |
+|----------------------------|---------------------------|--------------------------|
+| organizacion_id            | Identificador único de la organización propietaria del dato  | Control de visibilidad por entidad (Row-Level Security) |
+| user_id  	                 | Identificador del usuario que cargó o tiene permiso sobre el dato | Auditoría, filtrado por responsable, trazabilidad individual |
+| share_id 	                 | Identificador del grupo o token de compartición (grupo de acceso compartido o modelo de monetización) | Control de compartición, licencias de acceso, métricas de uso compartido |
+
+Estos campos deben ser incluidos en los metadatos del dataset y deben respetarse incluso si los datos están cifrados o seudonimizados.
+
+Reglas aplicadas con estos campos:
+-	Visualización controlada por organizacion_id: Un usuario solo puede consultar filas cuyo organizacion_id pertenezca a su entidad o esté explícitamente autorizado.
+-	Filtrado por user_id en dashboards y reportes de actividad para mostrar solo datos subidos o autorizados por el usuario.
+-	Permisos derivados de share_id permiten compartir datos entre organizaciones con control temporal, volumétrico o por frecuencia.
+
+Ejemplo de política de acceso
+```mysql
+WHERE organizacion_id IN (autorizadas_por_usuario_actual)
+  AND (share_id IS NULL OR share_id IN (tokens_autorizados))```
+
+## Diagrama de control de acceso por datos
+
+![imagen](Recursos/DiagramaControlAccesoDatos.png)
+
+4.  Llaves criptográficas y gobernanza de acceso
+
+Tipos de Llaves:
+
+| Tipo de Llave                          | Uso               |
+|----------------------------------------|-----------------------------------------|
+| Llave simétrica (AES)                  | Cifrado rápido de columnas de datos o archivos.            |
+| Llave asimétrica (RSA)                 | Validación de autenticidad y firma de documentos.                     |
+| Llave tripartita  	                 | Llave dividida en 3 partes. Se requieren 2 de 3 partes para uso. |
+
+Gestión de Llaves Tripartitas
+-	Se genera una llave única por organización.
+-	Las tres partes se entregan a:
+    o	La organización registrada
+    o	El custodio técnico (puede ser Ministerio, Hacienda, etc.)
+    o	La plataforma Data Pura Vida (bajo acceso controlado)
+-	Uso requiere autorización múltiple (2 de 3).
+-	Se usan módulos de seguridad de hardware (HSM) o servicios como AWS KMS Custom Key Store para proteger fragmentos.
+
+5. Auditoría y monitoreo
+-	Cada evento crítico (lectura, escritura, creación, descifrado, eliminación) se registra.
+-	Se generan reportes de actividad por usuario, IP, entidad, dataset y acción.
+-	Accesos a funciones restringidas quedan auditados con trazabilidad total.
+-	Sistema de alertas por comportamiento sospechoso o intentos de acceso inválidos.
+
+6. Matriz Roles y Permisos
+
+![imagen](Recursos/MatrizRolesPermisos.png)
+
+7. Roles y Condiciones Contextuales
+
+![imagen](Recursos/RolesCondicionesContextuales.png)
+
+
+# Diseño de Llave Criptográfica Tripartita
 Las llaves tripartitas en el contexto de este sistema van a ser de utilidad para proteger las claves criptográficas generadas distribuyendo una parte a Data Pura Vida y las otras dos a personas, entidades, etc. definidas por el usuario.
 
 El sistema propuesto para implementar esta llave utiliza AWS KMS y CloudHSM para la administración de las claves simétricas y asimétricas creadas y el algoritmo [SSS](https://www.geeksforgeeks.org/shamirs-secret-sharing-algorithm-cryptography/) (Shamir's Secret Sharing) para la división e implementación de la llave, este algoritmo divide la clave en la cantidad de partes que se deseen (en este caso van a ser tres) y asegura que se necesiten al menos dos o incluso las tres partes para reconstruir la clave. En este caso se van a tener que utilizar dos partes por razones de redundancia.
