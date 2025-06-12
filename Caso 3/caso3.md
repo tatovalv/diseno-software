@@ -36,9 +36,25 @@ La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistem
 | Módulos de IA		                     | Ejecutan validación documental, prompting para visualizaciones inteligentes y sugerencias de uso de datasets.|
 | Sistema de Seguridad	                 | Aplica cifrado en tránsito y en reposo, manejo de llaves (incluyendo llaves tripartitas) y control de accesos por roles y contexto.|
 
+## Componentes Arquitectónicos y Tecnologías AWS Native Sugeridas
+
+| Componente                             | Proposito                             | Tecnología Propuesta                  |
+|----------------------------------------|---------------------------------------|---------------------------------------|
+| Portal Web Público & Backoffice	     | Registro, dashboards, compra de datos, monitoreo | ReactJS + Tailwind CSS + Recharts + AWS Amplify |
+| Capa de Autenticación    	             | Verificación biométrica, MFA, sesión segura | Amazon Cognito + JWT + AWS IAM + WAF |
+| API Gateway	                         | Exposición controlada de servicios backend | Amazon API Gateway |
+| Backend API                   	     | Procesamiento, control de acceso, pagos, auditoría | Node.js + TypeScript + Zod/Joi + AWS Lambda |
+| Carga Inteligente (ETDL + IA) 	     | Limpieza, modelado, delta automático, duplicados | AWS Glue + Amazon Textract + Comprehend + SageMaker |
+| Data Lake                     	     | Almacenamiento de archivos (CSV, JSON, Excel) | Amazon S3 + Glue Catalog + Lake Formation |
+| Base de Datos Relacional      	     | Dashboards, usuarios, logs | Amazon Aurora Serverless v2 (opcional: DynamoDB para casos simples) |
+| Base de Datos NoSQL           	     | Tokens, metadatos, control de límites | Amazon DynamoDB |
+| Gestión de Seguridad           	     | Criptografía, llaves tripartitas, RBAC contextual | AWS KMS + Secrets Manager + GuardDuty + Security Hub |
+| DevOps & QA                      	     | CI/CD, monitoreo, infraestructura como código | GitHub Actions + AWS CDK + CloudWatch + CloudTrail |
+| Servicios Externos               	     | Notificaciones, pagos, correos | Stripe / BAC APIs + Twilio + Amazon SES |
+
 ## Diagrama de Contenedores
 
-![imagen](Recursos/diagrama_contenedores_data_pura_vida.png)
+![imagen](Recursos/DiagramaContenedores-Actualizado-DataPuraVida.png)
 
 ### Tecnologías sugeridas por contenedor
 
