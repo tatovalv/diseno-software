@@ -475,8 +475,230 @@ jobs:
 -----------------------------------
 # Datos, Datalakes e Interoperabilidad
 
+## Definición del Motor de Carga ETDL Inteligente con IA
+
+Para manejar de forma eficiente los distintos datasets que ingresan a la plataforma *JAMI Pura Vida*, se propone el diseño de un motor ETDL inteligente que permita no solo cargar los datos, sino también asegurar su calidad, contexto y trazabilidad.
+
+Este motor sigue una estructura modular con etapas de extracción, transformación, detección de contexto y modelado, integrando IA para analizar los metadatos y el contenido de los datos. Como parte central del diseño, se incorpora el patrón Reactivo, que permite que el sistema detecte y reaccione automáticamente ante nuevos datasets, rediseñando el modelo de datos cuando sea necesario.
+
+El objetivo es reducir al mínimo las intervenciones manuales, aprovechar la inteligencia artificial para tomar decisiones sobre el esquema de datos, y mantener siempre un registro claro de todo lo que ocurre en el proceso.
+
+### Objetivo general de esta nueva tarea
+
+Diseñar los módulos y el flujo del motor ETDL inteligente con IA, asegurando calidad de datos (consistencia, completitud, limpieza), trazabilidad (saber qué se hizo, cuándo y por qué) y aprovechar IA para decisiones automáticas durante el modelado.
+
+### Estructura general del Motor ETDL Inteligente
+
+![imagen](Recursos/ETDL.drawio.png)
+
+#### 1. ExtractionModule
+
+Se encarga de recibir datasets desde múltiples fuentes (archivos, APIs, bases de datos). Su función es desacoplar la ingesta del resto del flujo, y garantizar que los datos lleguen completos.
+
+Tecnologías: Amazon S3, AWS Glue, AWS DMS.
+
+#### 2. TransformationModule
+
+Aquí se ejecutan las tareas tradicionales de limpieza y transformación: validación de tipos, eliminación de duplicados, estandarización de formatos, y normalización de campos. Este paso garantiza calidad básica antes de pasar a IA.
+
+Tecnologías: AWS Glue, AWS Lambda.
+
+#### 3. ContextDetectionModule
+
+Este módulo utiliza IA para identificar el contexto semántico de los datos. Analiza nombres de columnas, metadatos, ejemplos de valores y estructuras comunes. Sirve como base para el modelado inteligente.
+
+Tecnologías: Amazon Comprehend, Textract.
+
+#### 4. IntelligentModelingModule
+
+Es el núcleo del sistema inteligente. Reacciona ante nuevos datasets y, con ayuda del LLM, detecta si deben fusionarse, vincularse, renombrarse o generar relaciones con datos existentes. Utiliza el patrón Reactivo porque responde a cambios en el estado del datalake sin intervención manual.
+
+#### Metáfora del mundo real del patrón
+
+Sistema inmunológico humano
+
+Así como el cuerpo humano detecta cambios en su entorno interno (virus, bacterias) y reacciona automáticamente activando defensas, el patrón reactivo en este sistema actúa ante la llegada de nuevos datasets, analiza sus características y toma acciones inmediatas como:
+
+-	Reorganizar relaciones entre datos existentes.
+-	Unir datasets que tienen campos comunes (como si detectara ADN similar).
+-	Agregar columnas donde se necesitan más detalles.
+-	Optimizar el modelo actual de forma automática sin intervención manual.
+
+#### Explicación funcional del Reactive Pattern en este caso
+
+El agente reactivo:
+
+1.	Espera pasivamente a que nuevos datasets ingresen al datalake.
+
+2.	Reacciona inmediatamente al evento de inserción mediante un pipeline automático.
+
+3.	Utiliza metadatos y análisis semántico del contenido para decidir:
+
+    -	Si debe hacer merge entre datasets.
+    -	Si hay columnas que deben unirse o renombrarse.
+    -	Si se deben establecer relaciones y generar llaves foráneas.
+    -	Si deben crearse índices o transformar el modelo de datos existente.
+
+4.	Aplica las transformaciones y reestructura el esquema sin intervención humana directa.
+
+#### Diagrama del patrón reactivo personalizado
+
+![imagen](Recursos/ReactivePattern.drawio.png)
+
+#### Componentes del patrón
+
+| Componente     | Función      | 
+|----------------------|----------------|
+| DatasetListener | Detecta la llegada de nuevos datasets en S3/Glue |
+| SchemaAnalyzer | Extrae y analiza los metadatos + semántica de columnas |
+| AIReactor (LLM Handler) | Consulta al LLM o motor IA con prompt estructurado |
+| SchemaRewriter | Aplica cambios al modelo de datos |
+| ModelStore | Registra la nueva versión del modelo optimizado |
+| ActionLogger | Guarda todas las decisiones y transformaciones para trazabilidad |
+
+#### Inputs
+
+-	Dataset cargado (Excel, CSV, JSON)
+-	Metadatos declarados (tipo de columnas, relaciones sugeridas)
+-	Historial de datasets existentes
+
+#### Result Output
+
+-	Modelo de datos transformado: actualizado, optimizado, versionado
+-	Acciones registradas en logs (para auditoría y reversión)
+-	Nuevas relaciones entre datasets reflejadas en Glue Catalog o Redshift
+
+#### Interacción con el LLM / Servicio de IA
+
+Ocurre dentro del componente AIReactor, que genera prompts con la siguiente estructura:
+
+```sh
+"Recibiste un nuevo dataset con las siguientes columnas: [...]. 
+Ya existen otros datasets con columnas similares: [...]. 
+Analiza si debe realizarse un merge, agregar columnas, renombrar, 
+crear relaciones o índices. Responde con acciones estructuradas."
+```
+
+Este componente puede usar Amazon Bedrock o SageMaker Endpoint personalizado si se entrena un modelo propio.
+
+#### 5. LoadModule
+
+Solo si el modelado fue exitoso, los datos se cargan al datalake (Data Lake formal) usando los esquemas actualizados. Esta operación puede incluir escritura en formato columnar, compresión, y control de versiones.
+
+Tecnologías: Amazon S3, AWS Glue, Redshift (opcional).
+
+#### 6. TraceabilityLogger
+
+Se encarga de registrar todo lo que sucede: desde el origen del dataset, hasta cada transformación y decisión tomada por el LLM. Provee trazabilidad completa para auditoría, debugging y control de calidad.
+
+Tecnologías: AWS CloudWatch Logs, DynamoDB.
+
+_________________________________________________________________
+
+## Control de Versiones y Deltas para Cada Dataset
+
+A medida que la plataforma *JAMI Pura Vida* recibe más y más datasets, es importante tener una estrategia clara para controlar sus versiones, ahorrar espacio y mantener la trazabilidad de todo lo que ocurre con los datos.
+
+Esta tarea tiene como objetivo definir cómo vamos a manejar las diferentes versiones de un mismo dataset, y cómo registrar solamente los cambios (deltas) que ocurren entre una versión y otra. De esta forma evitamos almacenar archivos completos cada vez que se actualiza algo, lo que nos ayuda a reducir el espacio utilizado, pero sin perder el historial de los datos.
+
+Además, todo este proceso debe quedar bien documentado, de modo que siempre podamos saber qué versión se usó, qué cambió, quién hizo el cambio (si aplica), y cuándo.
+
+### Propuesta de solución
+
+La idea es trabajar con un modelo mixto que combine:
+
+1.	 Snapshots o versiones completas del dataset (cuando se crea por primera vez o cada cierto tiempo), y
+
+2. Archivos delta, que registran únicamente lo que cambió entre una versión y otra (por ejemplo: datos nuevos, editados o eliminados).
+
+### Manejo de versiones
+
+Cada vez que se sube un dataset por primera vez, se guarda como una versión completa. A partir de ahí, se puede trabajar con cargas incrementales, donde solo se guarda lo que cambió desde la última versión.
+
+Para organizarlas, se pueden usar carpetas dentro de S3 con nombres que indiquen la versión o la fecha:
+
+```sh
+/dataset=usuarios/version=2025-02-03/
+/dataset=usuarios/version=2025-05-06-delta/
+```
+
+Para llevar un control claro de cada versión o delta que se cargue en el sistema, se usará una tabla llamada DatasetVersionLog, donde se registra todo lo relacionado con esa versión: qué tipo fue, cuántos registros tiene, quién la cargó, si hubo errores, la ruta del archivo en S3, etc.
+
+Esta tabla nos permite reconstruir la historia completa de cualquier dataset, detectar errores rápidamente, y tener trazabilidad tanto técnica como legal si es necesario. Se va a guardar un registro por cada carga que se haga (ya sea una versión completa o un delta), con información clave para identificar qué cambió, cuándo y en qué condiciones.
+
+### Estructura de la tabla DatasetVersionLog
+
+| Columna           | Tipo de Dato           | Descripción                      |
+|-----------------|----------------|---------------------------------------|
+| dataset_id | String | Nombre o identificador del dataset afectado (ej: empleados, salud_poblacional). |
+| version_id | String (fecha o UUID) | Identificador único de la versión (ej: 2024-06-01, 20240605-delta). |
+| version_type | String | "snapshot" o "delta", según el tipo de carga. |
+| timestamp | Datetime | Fecha y hora en que se cargó esa versión. |
+| operation_type | String | "insert", "update", "delete" o "mixed". |
+| record_count | Int | Cantidad de registros procesados en esta versión. |
+| executed_by | String | Usuario, sistema o proceso que hizo la carga. |
+| surce_file_path | String | Ruta del archivo en S3 asociado a la versión. |
+| hash | String (SHA256) | Hash del archivo para validar integridad. |
+| status | String | "success", "error" o "partial". |
+| error_messagge (opcional) | String | Mensaje de error si la carga falló. |
+| notes (opcional) | String | Campo libre para comentarios adicionales. |
+
+### ¿Cómo se detectan los deltas?
+
+La detección de cambios se puede hacer de dos formas:
+
+a) Usando columnas de control
+
+Cada dataset puede tener campos como:
+
+- last_updated_timestamp: para saber si un registro fue actualizado.
+- operation_type: para saber si fue un insert, update o delete.
+
+b) Comparando versiones
+
+Si el dataset no trae esas columnas, se puede comparar la nueva versión contra la anterior, y ver:
+
+-	Qué registros aparecen nuevos.
+-	Cuáles tienen diferencias.
+-	Cuáles ya no están.
+
+Esto se puede automatizar con herramientas como AWS Glue, que permite comparar datos con scripts, o incluso con consultas en Redshift si los datasets están registrados.
+
+### Aplicación de cambios (merge)
+
+Una vez identificados los cambios, se aplican al dataset principal, por ejemplo con un comando `MERGE INTO`, que:
+
+-	Inserta los registros nuevos.
+-	Actualiza los que cambiaron.
+-	Elimina los que ya no deberían estar.
+
+Este proceso mantiene la integridad de los datos y evita duplicaciones o errores por cargas repetidas.
 
 
+### Diagrama de flujo
+
+![imagen](Recursos/Deltas.drawio.png)
+ 
+### Trazabilidad y registros
+
+Para mantener un buen control de todo el proceso, se pueden registrar los siguientes datos por versión:
+
+- Fecha de carga.
+-	Hash del archivo.
+-	Registros totales.
+-	Tipo de operación (completa o delta).
+-	Resultado del procesamiento (exitoso o con errores).
+
+Esta información se puede guardar en una tabla en `DynamoDB` o en archivos en `S3`, y los logs del proceso se pueden enviar a `CloudWatch`.
+
+### Puntos altos de este enfoque
+
+-	Ahorra espacio porque no se guardan archivos completos innecesarios.
+-	Mejora el rendimiento al trabajar con datos más livianos.
+-	Mantiene trazabilidad, ya que se puede reconstruir cualquier versión del dataset si es necesario.
+- Facilita auditorías y debugging.
+
+_______________________________________________
 ---------------
 # Seguridad, Cumplimiento y Cifrado
 
@@ -960,229 +1182,6 @@ Ejemplo de Manifest JSON
 
 
 
-## Control de Versiones y Deltas para Cada Dataset
-
-A medida que la plataforma *JAMI Pura Vida* recibe más y más datasets, es importante tener una estrategia clara para controlar sus versiones, ahorrar espacio y mantener la trazabilidad de todo lo que ocurre con los datos.
-
-Esta tarea tiene como objetivo definir cómo vamos a manejar las diferentes versiones de un mismo dataset, y cómo registrar solamente los cambios (deltas) que ocurren entre una versión y otra. De esta forma evitamos almacenar archivos completos cada vez que se actualiza algo, lo que nos ayuda a reducir el espacio utilizado, pero sin perder el historial de los datos.
-
-Además, todo este proceso debe quedar bien documentado, de modo que siempre podamos saber qué versión se usó, qué cambió, quién hizo el cambio (si aplica), y cuándo.
-
-### Propuesta de solución
-
-La idea es trabajar con un modelo mixto que combine:
-
-1.	 Snapshots o versiones completas del dataset (cuando se crea por primera vez o cada cierto tiempo), y
-
-2. Archivos delta, que registran únicamente lo que cambió entre una versión y otra (por ejemplo: datos nuevos, editados o eliminados).
-
-### Manejo de versiones
-
-Cada vez que se sube un dataset por primera vez, se guarda como una versión completa. A partir de ahí, se puede trabajar con cargas incrementales, donde solo se guarda lo que cambió desde la última versión.
-
-Para organizarlas, se pueden usar carpetas dentro de S3 con nombres que indiquen la versión o la fecha:
-
-```sh
-/dataset=usuarios/version=2025-02-03/
-/dataset=usuarios/version=2025-05-06-delta/
-```
-
-Para llevar un control claro de cada versión o delta que se cargue en el sistema, se usará una tabla llamada DatasetVersionLog, donde se registra todo lo relacionado con esa versión: qué tipo fue, cuántos registros tiene, quién la cargó, si hubo errores, la ruta del archivo en S3, etc.
-
-Esta tabla nos permite reconstruir la historia completa de cualquier dataset, detectar errores rápidamente, y tener trazabilidad tanto técnica como legal si es necesario. Se va a guardar un registro por cada carga que se haga (ya sea una versión completa o un delta), con información clave para identificar qué cambió, cuándo y en qué condiciones.
-
-### Estructura de la tabla DatasetVersionLog
-
-| Columna           | Tipo de Dato           | Descripción                      |
-|-----------------|----------------|---------------------------------------|
-| dataset_id | String | Nombre o identificador del dataset afectado (ej: empleados, salud_poblacional). |
-| version_id | String (fecha o UUID) | Identificador único de la versión (ej: 2024-06-01, 20240605-delta). |
-| version_type | String | "snapshot" o "delta", según el tipo de carga. |
-| timestamp | Datetime | Fecha y hora en que se cargó esa versión. |
-| operation_type | String | "insert", "update", "delete" o "mixed". |
-| record_count | Int | Cantidad de registros procesados en esta versión. |
-| executed_by | String | Usuario, sistema o proceso que hizo la carga. |
-| surce_file_path | String | Ruta del archivo en S3 asociado a la versión. |
-| hash | String (SHA256) | Hash del archivo para validar integridad. |
-| status | String | "success", "error" o "partial". |
-| error_messagge (opcional) | String | Mensaje de error si la carga falló. |
-| notes (opcional) | String | Campo libre para comentarios adicionales. |
-
-### ¿Cómo se detectan los deltas?
-
-La detección de cambios se puede hacer de dos formas:
-
-a) Usando columnas de control
-
-Cada dataset puede tener campos como:
-
-- last_updated_timestamp: para saber si un registro fue actualizado.
-- operation_type: para saber si fue un insert, update o delete.
-
-b) Comparando versiones
-
-Si el dataset no trae esas columnas, se puede comparar la nueva versión contra la anterior, y ver:
-
--	Qué registros aparecen nuevos.
--	Cuáles tienen diferencias.
--	Cuáles ya no están.
-
-Esto se puede automatizar con herramientas como AWS Glue, que permite comparar datos con scripts, o incluso con consultas en Redshift si los datasets están registrados.
-
-### Aplicación de cambios (merge)
-
-Una vez identificados los cambios, se aplican al dataset principal, por ejemplo con un comando `MERGE INTO`, que:
-
--	Inserta los registros nuevos.
--	Actualiza los que cambiaron.
--	Elimina los que ya no deberían estar.
-
-Este proceso mantiene la integridad de los datos y evita duplicaciones o errores por cargas repetidas.
-
-
-### Diagrama de flujo
-
-![imagen](Recursos/Deltas.drawio.png)
- 
-### Trazabilidad y registros
-
-Para mantener un buen control de todo el proceso, se pueden registrar los siguientes datos por versión:
-
-- Fecha de carga.
--	Hash del archivo.
--	Registros totales.
--	Tipo de operación (completa o delta).
--	Resultado del procesamiento (exitoso o con errores).
-
-Esta información se puede guardar en una tabla en `DynamoDB` o en archivos en `S3`, y los logs del proceso se pueden enviar a `CloudWatch`.
-
-### Puntos altos de este enfoque
-
--	Ahorra espacio porque no se guardan archivos completos innecesarios.
--	Mejora el rendimiento al trabajar con datos más livianos.
--	Mantiene trazabilidad, ya que se puede reconstruir cualquier versión del dataset si es necesario.
-- Facilita auditorías y debugging.
-
-_______________________________________________
-
-## Definición del Motor de Carga ETDL Inteligente con IA
-
-Para manejar de forma eficiente los distintos datasets que ingresan a la plataforma *JAMI Pura Vida*, se propone el diseño de un motor ETDL inteligente que permita no solo cargar los datos, sino también asegurar su calidad, contexto y trazabilidad.
-
-Este motor sigue una estructura modular con etapas de extracción, transformación, detección de contexto y modelado, integrando IA para analizar los metadatos y el contenido de los datos. Como parte central del diseño, se incorpora el patrón Reactivo, que permite que el sistema detecte y reaccione automáticamente ante nuevos datasets, rediseñando el modelo de datos cuando sea necesario.
-
-El objetivo es reducir al mínimo las intervenciones manuales, aprovechar la inteligencia artificial para tomar decisiones sobre el esquema de datos, y mantener siempre un registro claro de todo lo que ocurre en el proceso.
-
-### Objetivo general de esta nueva tarea
-
-Diseñar los módulos y el flujo del motor ETDL inteligente con IA, asegurando calidad de datos (consistencia, completitud, limpieza), trazabilidad (saber qué se hizo, cuándo y por qué) y aprovechar IA para decisiones automáticas durante el modelado.
-
-### Estructura general del Motor ETDL Inteligente
-
-![imagen](Recursos/ETDL.drawio.png)
-
-#### 1. ExtractionModule
-
-Se encarga de recibir datasets desde múltiples fuentes (archivos, APIs, bases de datos). Su función es desacoplar la ingesta del resto del flujo, y garantizar que los datos lleguen completos.
-
-Tecnologías: Amazon S3, AWS Glue, AWS DMS.
-
-#### 2. TransformationModule
-
-Aquí se ejecutan las tareas tradicionales de limpieza y transformación: validación de tipos, eliminación de duplicados, estandarización de formatos, y normalización de campos. Este paso garantiza calidad básica antes de pasar a IA.
-
-Tecnologías: AWS Glue, AWS Lambda.
-
-#### 3. ContextDetectionModule
-
-Este módulo utiliza IA para identificar el contexto semántico de los datos. Analiza nombres de columnas, metadatos, ejemplos de valores y estructuras comunes. Sirve como base para el modelado inteligente.
-
-Tecnologías: Amazon Comprehend, Textract.
-
-#### 4. IntelligentModelingModule
-
-Es el núcleo del sistema inteligente. Reacciona ante nuevos datasets y, con ayuda del LLM, detecta si deben fusionarse, vincularse, renombrarse o generar relaciones con datos existentes. Utiliza el patrón Reactivo porque responde a cambios en el estado del datalake sin intervención manual.
-
-#### Metáfora del mundo real del patrón
-
-Sistema inmunológico humano
-
-Así como el cuerpo humano detecta cambios en su entorno interno (virus, bacterias) y reacciona automáticamente activando defensas, el patrón reactivo en este sistema actúa ante la llegada de nuevos datasets, analiza sus características y toma acciones inmediatas como:
-
--	Reorganizar relaciones entre datos existentes.
--	Unir datasets que tienen campos comunes (como si detectara ADN similar).
--	Agregar columnas donde se necesitan más detalles.
--	Optimizar el modelo actual de forma automática sin intervención manual.
-
-#### Explicación funcional del Reactive Pattern en este caso
-
-El agente reactivo:
-
-1.	Espera pasivamente a que nuevos datasets ingresen al datalake.
-
-2.	Reacciona inmediatamente al evento de inserción mediante un pipeline automático.
-
-3.	Utiliza metadatos y análisis semántico del contenido para decidir:
-
-    -	Si debe hacer merge entre datasets.
-    -	Si hay columnas que deben unirse o renombrarse.
-    -	Si se deben establecer relaciones y generar llaves foráneas.
-    -	Si deben crearse índices o transformar el modelo de datos existente.
-
-4.	Aplica las transformaciones y reestructura el esquema sin intervención humana directa.
-
-#### Diagrama del patrón reactivo personalizado
-
-![imagen](Recursos/ReactivePattern.drawio.png)
-
-#### Componentes del patrón
-
-| Componente     | Función      | 
-|----------------------|----------------|
-| DatasetListener | Detecta la llegada de nuevos datasets en S3/Glue |
-| SchemaAnalyzer | Extrae y analiza los metadatos + semántica de columnas |
-| AIReactor (LLM Handler) | Consulta al LLM o motor IA con prompt estructurado |
-| SchemaRewriter | Aplica cambios al modelo de datos |
-| ModelStore | Registra la nueva versión del modelo optimizado |
-| ActionLogger | Guarda todas las decisiones y transformaciones para trazabilidad |
-
-#### Inputs
-
--	Dataset cargado (Excel, CSV, JSON)
--	Metadatos declarados (tipo de columnas, relaciones sugeridas)
--	Historial de datasets existentes
-
-#### Result Output
-
--	Modelo de datos transformado: actualizado, optimizado, versionado
--	Acciones registradas en logs (para auditoría y reversión)
--	Nuevas relaciones entre datasets reflejadas en Glue Catalog o Redshift
-
-#### Interacción con el LLM / Servicio de IA
-
-Ocurre dentro del componente AIReactor, que genera prompts con la siguiente estructura:
-
-```sh
-"Recibiste un nuevo dataset con las siguientes columnas: [...]. 
-Ya existen otros datasets con columnas similares: [...]. 
-Analiza si debe realizarse un merge, agregar columnas, renombrar, 
-crear relaciones o índices. Responde con acciones estructuradas."
-```
-
-Este componente puede usar Amazon Bedrock o SageMaker Endpoint personalizado si se entrena un modelo propio.
-
-#### 5. LoadModule
-
-Solo si el modelado fue exitoso, los datos se cargan al datalake (Data Lake formal) usando los esquemas actualizados. Esta operación puede incluir escritura en formato columnar, compresión, y control de versiones.
-
-Tecnologías: Amazon S3, AWS Glue, Redshift (opcional).
-
-#### 6. TraceabilityLogger
-
-Se encarga de registrar todo lo que sucede: desde el origen del dataset, hasta cada transformación y decisión tomada por el LLM. Provee trazabilidad completa para auditoría, debugging y control de calidad.
-
-Tecnologías: AWS CloudWatch Logs, DynamoDB.
-_________________________________________________________________
 
 ## Arquitectura del Motor de Prompts para Consultas Inteligentes
 
