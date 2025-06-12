@@ -223,7 +223,8 @@ Cada entorno tendrá su propia infraestructura separada:
 Herramientas sugeridas: GitHub Actions / GitLab CI / AWS CodePipeline
 
 ### Control de versiones y trazabilidad
-	Cada despliegue debe llevar:
+	
+    Cada despliegue debe llevar:
 
 -	Código hash o número de versión
 -	Registro de cambios (changelog)
