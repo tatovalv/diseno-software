@@ -183,6 +183,125 @@ Gestión de Llaves Tripartitas
 ![imagen](Recursos/RolesCondicionesContextuales.png)
 
 
+# Diseño de Infraestructura y Deploy Multinivel (Dev, QA, Prod)
+
+## Entornos definidos
+
+Se trabajará con tres entornos principales:
+
+| Entorno                    | Propósito               | Visibilidad | Accesos |
+|----------------------------|---------------------------|--------------------------|--------------------------|
+| Desarrollo (Dev)           | Desarrollo activo, pruebas unitarias, prototipos.  | Interno (equipo técnico) | Acceso libre con auditoría |
+| Calidad (QA) 	             | Pruebas funcionales, automatizadas y de integración. | Interno (QA y Dev) | Acceso validado por IP/MFA |
+| Producción (Prod) 	     | Sistema en vivo operando para usuarios reales. | Externo (usuarios reales) | Acceso limitado y monitorizado |
+
+## Diseño de Infraestructura por entorno
+### Estructura común
+Cada entorno tendrá su propia infraestructura separada:
+
+| Componente | Tecnología / Propuesta |
+|------------|----------------------|
+| Microservicios / Contenedores | AWS ECS Fargate o EKS (Kubernetes) |
+| Almacenamiento estático | Amazon S3 (carpetas separadas por entorno) |
+| Bases de datos | Amazon RDS, con separación física y lógica |
+| Datalake | Amazon S3 + Glue + Lake Formation |
+| Backend API | API Gateway + Lambda o ECS Services |
+| Autenticación y seguridad | Cognito, IAM Roles, WAF, Secrets Manager |
+| Logs y auditoría | CloudWatch, CloudTrail, GuardDuty, Security Hub |
+
+## Flujo de despliegue y promoción
+### Pipeline de CI/CD
+
+| Etapa | Acción |
+|-------|---------|
+| Commit | Desarrollador sube cambios |
+| Build | Generación automática de contenedores / artefactos |
+| Test en Dev | Pruebas unitarias e integración en entorno aislado |
+| Deploy a QA | Validación funcional, automatizada y manual por QA |
+| Deploy a Producción | Promoción con revisión manual, monitoreo activo |
+
+Herramientas sugeridas: GitHub Actions / GitLab CI / AWS CodePipeline
+
+### Control de versiones y trazabilidad
+	Cada despliegue debe llevar:
+
+-	Código hash o número de versión
+-	Registro de cambios (changelog)
+-	Validación previa en QA
+
+	Todas las promociones se registran con trazabilidad completa.
+
+### Control de acceso y seguridad    
+| Capa | Medidas aplicadas |
+|------|------------------|
+| Dev | Acceso abierto para desarrolladores con logs |
+| QA | Acceso controlado, datos sintéticos y cifrados |
+| Producción | Acceso restringido, monitoreo y MFA obligatorio |
+| Red | Control por listas blancas y segmentación de VPCs |
+| Datos sensibles | Siempre cifrados en tránsito y reposo |
+
+## Auditoría y monitoreo
+-	Logs por entorno capturados vía CloudWatch + CloudTrail
+-	Alertas configuradas en QA y Producción
+-	Producción monitoreada con métricas clave:
+o	Tiempo de respuesta
+o	Errores
+o	Uso de recursos
+-	Seguridad reforzada en Producción con GuardDuty + Security Hub
+
+## Diagrama del flujo CI/CD simplificado
+![imagen](Recursos/DiagramaFLujoCICD.png)
+
+## Configuración de Scripts de Deployment – GitHub Actions
+Para cada entorno definido (Dev, QA, Producción), se emplearán pipelines automatizados de CI/CD mediante GitHub Actions. A continuación se describen los archivos base de configuración YAML utilizados para orquestar los despliegues por entorno.
+
+1. Archivo: `.github/workflows/deploy-dev.yml`
+- Ejecutado en push a rama `develop`
+- Corre pruebas unitarias
+- Despliega automáticamente a entorno Dev (ECS / Lambda)
+- Incluye logging en CloudWatch y notificación opcional
+
+2. Archivo: `.github/workflows/deploy-qa.yml`
+- Ejecutado en push a rama `release/qa`
+- Corre pruebas integradas y de regresión
+- Despliega a entorno QA con validaciones predefinidas
+
+3. Archivo: `.github/workflows/deploy-prod.yml`
+- Ejecutado manualmente vía GitHub Actions
+- Requiere aprobación (manual trigger)
+- Despliega solo si QA fue exitoso
+- Integra monitoreo con GuardDuty y CloudTrail post-deploy
+
+Ejemplo de configuración mínima:
+
+```yaml
+name: Deploy to Dev
+on:
+  push:
+    branches: [develop]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    - name: Install dependencies
+      run: npm install
+    - name: Run tests
+      run: npm test
+    - name: Deploy to AWS Lambda
+      uses: appleboy/lambda-action@master
+      with:
+        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        function_name: data-pura-vida-dev
+        zip_file: dist/lambda.zip
+```
+
+
 # Diseño de Llave Criptográfica Tripartita
 Las llaves tripartitas en el contexto de este sistema van a ser de utilidad para proteger las claves criptográficas generadas distribuyendo una parte a Data Pura Vida y las otras dos a personas, entidades, etc. definidas por el usuario.
 
