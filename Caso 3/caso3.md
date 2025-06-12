@@ -869,3 +869,95 @@ El motor de prompts implementa seguridad en distintos niveles:
 
 
 5.	Bloqueo y reformulación de prompts sensibles: Si un prompt intenta acceder a datos restringidos (por ejemplo: “mostrame ingresos por persona en mi distrito”), el sistema puede reformular automáticamente la consulta o negarla, manteniendo siempre la trazabilidad del intento.
+
+# Arquitectura del Portal de BackOffice
+
+## Funciones clave del portal
+
+| Funcionalidad             | Descripción                                                                 |
+|--------------------------|------------------------------------------------------------------------------|
+| Gestión de registros     | Validar o rechazar solicitudes de registro de usuarios y entidades.         |
+| Gestión de llaves        | Generar, dividir, revocar o reasignar llaves simétricas, asimétricas y tripartitas. |
+| Monitoreo de cargas      | Visualizar flujos de datos, estados, errores, volumen y métricas de integridad. |
+| Auditoría de operaciones | Consultar logs detallados de quién hizo qué, cuándo y con qué efecto.       |
+| Reversibilidad           | Permitir anular, revertir o rehacer acciones críticas si se justifica.      |
+| Gestión de roles y permisos | Asignar perfiles a operadores, definir visibilidad y niveles de aprobación. |
+| Generación de reportes   | Crear reportes detallados para análisis técnico o cumplimiento normativo.   |
+
+---
+
+## Arquitectura del sistema
+
+### Componentes principales
+
+| Componente         | Descripción técnica                                                               |
+|--------------------|------------------------------------------------------------------------------------|
+| Autenticación      | Integración con Amazon Cognito (MFA + RBAC)                                       |
+| Backend API        | Exposición de servicios administrativos vía endpoints protegidos (REST o GraphQL) |
+| Base de Datos      | PostgreSQL o DynamoDB con acceso segmentado por tipo de acción                    |
+| Registro de logs   | CloudWatch Logs + CloudTrail para auditoría interna                               |
+| Orquestación       | Lambda Functions o microservicios para tareas reversibles o asíncronas            |
+| Panel de métricas  | Dashboards internos con métricas (CloudWatch, Prometheus, Grafana si aplica)     |
+
+
+
+## Control de acceso (RBAC)
+
+| Rol del operador        | Permisos asignados                                                               |
+|-------------------------|----------------------------------------------------------------------------------|
+| Validador               | Aprobar/rechazar registros nuevos                                                |
+| Administrador de llaves | Gestionar llaves, ver custodios, auditar firmas                                 |
+| Auditor                 | Consultar logs, generar reportes de actividad                                    |
+| Supervisor              | Editar configuraciones, activar/desactivar flujos de integración                 |
+| Superadmin              | Ver y hacer todo; incluido revertir operaciones pasadas                          |
+
+Los permisos están jerarquizados y condicionados al contexto de cada entidad (ej: solo puedo ver datos de mi jurisdicción).
+
+
+
+## Reversibilidad y control de errores
+
+- Toda acción crítica tendrá una referencia de operación única.
+- Se registrarán acciones con:
+  - Quién la ejecutó
+  - Fecha y hora exacta
+  - Resultado del proceso
+- Las operaciones reversibles deben:
+  - Tener lógica de deshacer (rollback, soft delete, estado anterior)
+  - Contar con confirmación de 2 operadores o autorización de un supervisor
+
+### Diseño de la Bitácora de Reversibilidad y Control de Errores
+
+| Campo                    | Tipo de dato             | Descripción                                                                 |
+|--------------------------|--------------------------|-----------------------------------------------------------------------------|
+| `operation_id`           | UUID / Texto             | Identificador único de la operación.                                        |
+| `timestamp`              | FechaHora (ISO 8601)     | Fecha y hora exacta en que se ejecutó la operación.                         |
+| `executed_by_user_id`    | Texto / UUID             | ID del usuario que ejecutó la acción.                                       |
+| `user_role`              | Texto                    | Rol del usuario al momento de la acción.                                    |
+| `user_ip`                | IP (Texto)               | Dirección IP desde la cual se ejecutó la operación.                         |
+| `entity_context`         | Texto                    | Entidad u organización asociada al contexto de la acción.                   |
+| `operation_type`         | Enum                     | Tipo de acción (CREATE, UPDATE, DELETE, REVERT, APPROVE, REJECT).           |
+| `operation_target`       | Texto                    | Objeto afectado (usuario, dataset, llave, configuración, etc.).             |
+| `target_id`              | Texto / UUID             | ID o referencia del objeto afectado.                                        |
+| `previous_state`         | JSON (opcional)          | Estado anterior al cambio (para permitir reversión).                        |
+| `new_state`              | JSON (opcional)          | Estado posterior al cambio.                                                 |
+| `is_reversible`          | Booleano                 | Indica si la operación puede revertirse.                                    |
+| `reversal_token`         | UUID / Texto (opcional)  | Token para reversión, si aplica.                                            |
+| `reversed_by_user_id`    | Texto / UUID (opcional)  | Usuario que realizó la reversión (si ocurrió).                              |
+| `reversed_timestamp`     | FechaHora (opcional)     | Fecha y hora en que se revirtió la operación.                               |
+| `requires_supervisor_auth`| Booleano                | Si requiere doble validación o autorización de supervisor.                  |
+| `reason_or_comment`      | Texto                    | Motivo u observación registrada por el operador.                            |
+| `status`                 | Enum                     | Estado final de la operación (SUCCESS, FAILED, REVERTED, PENDING).          |
+| `audit_signature`        | Texto (hash o firma)     | Firma digital para asegurar la integridad del registro.                     |
+
+## Auditoría y trazabilidad
+
+- Logs almacenados con nivel de detalle:
+  - Usuario, IP, acción, resultado, motivo
+- Todas las operaciones serán auditables vía filtros por fecha, tipo y resultado.
+- Se rastrearán cambios de configuración, llaves, permisos y accesos.
+- Los logs se podrán visualizar desde el portal y exportar con autorización.
+- Los reportes de trazabilidad podrán descargarse en formato PDF o CSV con firma digital.
+
+## Diagrama Arquitectura Portal Backoffice
+![imagen](Recursos/DiagramaArquitecturaPortalBackOffice.png)
