@@ -1,7 +1,7 @@
 # *JAMI Pura Vida*
 
 ## Integrantes
-Marcelo Gomez
+Marcelo Gómez
 
 Luis Masis
 
@@ -14,21 +14,21 @@ Juan Carlos Valverde
 
 La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistema nacional de datos que permita a instituciones públicas, empresas privadas y ciudadanos compartir, acceder y utilizar información de manera fácil, segura y eficiente. Este documento describe la arquitectura técnica base del sistema, detallando sus componentes clave (como bases de datos, interfaces y protocolos de seguridad) y cómo estos se integran para garantizar que los datos sean interoperables (compatibles entre diferentes sistemas), protegidos contra riesgos y accesibles para quienes los necesiten. El objetivo es sentar las bases de una infraestructura que impulse la transparencia, la innovación y la toma de decisiones basada en evidencia, beneficiando a todo el país.
 
-# Plan de Ejecucion
+# Plan de Ejecución
 
 ![imagen](Recursos/PlanEjecucion.png)
 
 # Milestones
 
-| Hito | Fecha | Descripcion |
+| Hito | Fecha | Descripción |
 |:-|:-|:-|:-|
-| Inicio del Proyecto	 | 	10 Junio 2025 | Lanzamiento oficial del proyecto, asignación de equipo y definición detallada de requerimientos. |
+| Inicio del Proyecto	 | 	10 junio 2025 | Lanzamiento oficial del proyecto, asignación de equipo y definición detallada de requerimientos. |
 | Gobernanza y Seguridad Definidas | 12 Julio 2025 | Diseño completo de políticas de autenticación, control de acceso, trazabilidad y gobernanza de llaves. |
-| Infraestructura Lista | 2 Agosto 2025 | Configuración de entornos Dev, QA y Prod con arquitectura serverless y contenedores en AWS. |
+| Infraestructura Lista | 2 agosto 2025 | Configuración de entornos Dev, QA y Prod con arquitectura serverless y contenedores en AWS. |
 | Backoffice y API Base Desarrollados	 | 6 Setiembre 2025 | Desarrollo funcional del portal interno con gestión de operadores, llaves y registros. |
 | Motor de Carga y Validación Integrado	 | 27 Setiembre 2025 | Integración del sistema para ingestión, validación, monitoreo y segmentación de datasets. |
-| Pruebas de Seguridad Completadas	 | 11 Octubre 2025 | Validación exhaustiva de accesos, cifrado, reversibilidad, trazabilidad y detección de anomalías. |
-| Lanzamiento Inicial del Sistema	 | 25 Octubre 2025 | Versión productiva operativa con primeros usuarios registrados y flujos activos en producción. |
+| Pruebas de Seguridad Completadas	 | 11 octubre 2025 | Validación exhaustiva de accesos, cifrado, reversibilidad, trazabilidad y detección de anomalías. |
+| Lanzamiento Inicial del Sistema	 | 25 octubre 2025 | Versión productiva operativa con primeros usuarios registrados y flujos activos en producción. |
 
 ## Milestone 1: Inicio del Proyecto 
 
@@ -162,7 +162,7 @@ La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistem
 
 ### Componentes Arquitectónicos y Tecnologías AWS Native Sugeridas
 
-| Componente                             | Proposito                             | Tecnología Propuesta                  |
+| Componente                             | Propósito                             | Tecnología Propuesta                  |
 |----------------------------------------|---------------------------------------|---------------------------------------|
 | Portal Web Público & Backoffice	     | Registro, dashboards, compra de datos, monitoreo | ReactJS + Tailwind CSS + Recharts + AWS Amplify |
 | Capa de Autenticación    	             | Verificación biométrica, MFA, sesión segura | Amazon Cognito + JWT + AWS IAM + WAF |
@@ -403,6 +403,29 @@ Definición de Roles Base:
 | Operador (Backoffice) 	             | Validar registros, gestionar flujos de carga, revisar accesos y generar reportes.                   |
 | Superadmin del sistema	             | Control total: gestionar entidades, revocar accesos, regenerar llaves, visualizar todo.                   |
 
+2.1 Guía de *How To* crear un rol en Cognito
+
+* Acceder a la consola de AWS Cognito y selecciona tu User Pool.
+* Dirifirse a la sección "Grupos" y haz clic en "Crear grupo".
+* Asignar un nombre descriptivo al grupo (ejemplo: data-analyst ) y definir las políticas de permisos asociadas al grupo usando AWS IAM.
+* Asociar usuarios existentes o nuevos al grupo creado.
+
+Ejemplo de política IAM para acceso de (solo lectura) a S3:
+```json
+{
+  "Version": "XXXX-XX-XX",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": ["arn:aws:s3:::datapuravida-datalake/*"]
+    }
+  ]
+}
+```
+
+---
+
 Contexto Adicional de Acceso:
 
 | Contexto evaluado                      | Ejemplo de regla aplicada               |
@@ -414,7 +437,7 @@ Contexto Adicional de Acceso:
 
 Motor de políticas contextualizadas puede ser implementado con AWS Identity Center + reglas personalizadas vía Lambda.
 
-3. Restricción de Accesos a Nivel de Datos
+1. Restricción de Accesos a Nivel de Datos
 El modelo de seguridad incluye segmentación de acceso granular basada en entidad, usuario y nivel de autorización. Para garantizar un control completo sobre la visibilidad y trazabilidad de cada dataset, se definen campos mínimos obligatorios que deben estar presentes en todos los datasets cargados en la plataforma.
 
 Campos requeridos en todos los datasets para aplicar reglas de gobernanza:
@@ -433,7 +456,7 @@ Reglas aplicadas con estos campos:
 -	Permisos derivados de share_id permiten compartir datos entre organizaciones con control temporal, volumétrico o por frecuencia.
 
 Ejemplo de política de acceso
-```mysql
+```sql
 WHERE organizacion_id IN (autorizadas_por_usuario_actual)
   AND (share_id IS NULL OR share_id IN (tokens_autorizados))
 ```
@@ -476,6 +499,7 @@ Gestión de Llaves Tripartitas
 ![imagen](Recursos/RolesCondicionesContextuales.png)
 
 
+
 # Diseño de Infraestructura y Deploy Multinivel (Dev, QA, Prod)
 
 ## Entornos definidos
@@ -515,9 +539,19 @@ Cada entorno tendrá su propia infraestructura separada:
 
 Herramientas sugeridas: GitHub Actions / GitLab CI / AWS CodePipeline
 
+### Guía de *How to* añadir un nuevo entorno de pruebas al pipeline de GitHub Actions.
+
+* Crear un archivo de configuración para el entorno (ejemplo `env.test.json` con variables específicas del entorno de pruebas).
+
+* Actualizar el workflow de GitHub Actions `.github/workflows/deploy.yml` y agregar un nuevo job para el entorno de pruebas:
+
+* Agregar variables y secretos en GitHub (en Settings -> Secrets and variables -> Actions y agrega las credenciales necesarias).
+
+* Probar el pipeline y verificar que este ejecuta las pruebas y despliega correctamente al entorno de pruebas.
+
 ### Control de versiones y trazabilidad
 	
-    Cada despliegue debe llevar:
+Cada despliegue debe llevar:
 
 -	Código hash o número de versión
 -	Registro de cambios (changelog)
@@ -547,7 +581,7 @@ o	Uso de recursos
 ![imagen](Recursos/DiagramaFLujoCICD.png)
 
 ## Configuración de Scripts de Deployment – GitHub Actions
-Para cada entorno definido (Dev, QA, Producción), se emplearán pipelines automatizados de CI/CD mediante GitHub Actions. A continuación se describen los archivos base de configuración YAML utilizados para orquestar los despliegues por entorno.
+Para cada entorno definido (Dev, QA, Producción), se emplearán pipelines automatizados de CI/CD mediante GitHub Actions. A continuación, se describen los archivos base de configuración YAML utilizados para orquestar los despliegues por entorno.
 
 1. Archivo: `.github/workflows/deploy-dev.yml`
 - Ejecutado en push a rama `develop`
@@ -788,7 +822,7 @@ Esto se puede automatizar con herramientas como AWS Glue, que permite comparar d
 
 ### Aplicación de cambios (merge)
 
-Una vez identificados los cambios, se aplican al dataset principal, por ejemplo con un comando `MERGE INTO`, que:
+Una vez identificados los cambios, se aplican al dataset principal, por ejemplo, con un comando `MERGE INTO`, que:
 
 -	Inserta los registros nuevos.
 -	Actualiza los que cambiaron.
@@ -995,7 +1029,7 @@ El mecanismo implementa AWS Config para detectar automáticamente configuracione
 Aparte, este mecanismo contempla la retención de logs según su antigüedad con CloudWatch para retención de logs menores a 6 meses y S3 para los logs más antiguos e importantes.
 
 
-<!-- Leyes/Estandares cumplidos
+<!-- Leyes/Estándares cumplidos
 Ley 8968 (Art 16, Art 17, Art 19, Arts 21-30)
 ISO 27001 (A.9.4.2, A.12.4.3, A.12.4)
 GDPR (Art 5(2), Arts 15-22, Art 30, Art 35)
@@ -1105,7 +1139,7 @@ macie.create_classification_job(
 ```
 
 -----------------
-# Visualizacion y Monitoreo
+# Visualización y Monitoreo
 
 # Sistema de Métricas, Consumo y Alertas
 El sistema de módulos planteados a continuación busca proporcionar una visión completa del sistema comenzando por la métricas más críticas con la posibilidad de agregar las que se necesiten según se considere necesario. 
@@ -1132,6 +1166,33 @@ Este módulo consiste en desbordas de métricas como disponibilidad del sistema 
 
 ## 3. Módulos de Visualización y Alertas
 Este módulo va a contar con ciertos dashboards, widgets, gráficos etc. que van a servir para visualizar la salud del sistema, monitorear el uso de recursos y crear alertas si se presenta un problema de seguridad.
+
+## 4. Guía *How to* crear un nuevo dashboard en Grafana para monitoreo de ETL.
+
+* Identifica el evento o proceso a monitorear, por ejemplo, cantidad de registros procesados.
+
+* Modificar el código para enviar métricas a CloudWatch**  
+Ejemplo en Python:
+````python
+import boto3
+
+cloudwatch = boto3.client('cloudwatch')
+
+def lambda_handler(event, context):
+    # ... lógica ETL ...
+    cloudwatch.put_metric_data(
+        Namespace='DataPuraVida/ETL',
+        MetricData=[
+            {
+               'MetricName': 'RegistrosProcesados',
+               'Value': cantidad_registros,
+               'Unit': 'Count'
+            },
+        ]
+    )
+````
+
+* Verificar la métrica en la consola de CloudWatch 
 
 ## Arquitectura del Portal de BackOffice
 
@@ -1162,7 +1223,15 @@ Este módulo va a contar con ciertos dashboards, widgets, gráficos etc. que van
 | Orquestación       | Lambda Functions o microservicios para tareas reversibles o asíncronas            |
 | Panel de métricas  | Dashboards internos con métricas (CloudWatch, Prometheus, Grafana si aplica)     |
 
+### Guía de *How to* como agregar un nuevo dashboard al portal de backoffice
 
+* Acceder al repositorio del portal administrativo y clonar o abrir el proyecto en el entorno de desarrollo.
+
+* Crear un nuevo componente de dashboard implementando la lógica y visualización de datos según los requerimientos.
+
+* Integrar el dashboard en la navegación y conectar el dashboard a la API (asegurándose de manejar la autenticación y autorización).  
+
+* Probar el dashboard verificando que los datos se muestren correctamente y que los permisos sean los adecuados.
 
 ## Control de acceso (RBAC)
 
@@ -1175,7 +1244,6 @@ Este módulo va a contar con ciertos dashboards, widgets, gráficos etc. que van
 | Superadmin              | Ver y hacer todo; incluido revertir operaciones pasadas                          |
 
 Los permisos están jerarquizados y condicionados al contexto de cada entidad (ej: solo puedo ver datos de mi jurisdicción).
-
 
 
 ## Reversibilidad y control de errores
@@ -1302,14 +1370,11 @@ Ejemplo de Manifest JSON
 
 
 
-
-
-
 ## Arquitectura del Motor de Prompts para Consultas Inteligentes
 
 Uno de los objetivos más innovadores del proyecto *JAMI Pura Vida* es permitir a los usuarios consultar datos por medio de lenguaje natural, sin necesidad de escribir código o armar consultas técnicas.
 
-Para eso, se plantea el diseño de un motor de prompts, que sirva como puente entre lo que el usuario pide con sus palabras y las visualizaciones que necesita ver. Es decir, un sistema capaz de traducir una pregunta como “Mostrame el crecimiento mensual de nuevas empresas registradas en el GAM” en un dashboard generado automáticamente, respetando siempre los permisos de acceso que tenga ese usuario.
+Para eso, se plantea el diseño de un motor de prompts, que sirva como puente entre lo que el usuario pide con sus palabras y las visualizaciones que necesita ver. Es decir, un sistema capaz de traducir una pregunta como “Muéstrame el crecimiento mensual de nuevas empresas registradas en el GAM” en un dashboard generado automáticamente, respetando siempre los permisos de acceso que tenga ese usuario.
 
 Este motor debe ser flexible, seguro y capaz de conectarse a la base de datos o datalake según corresponda, procesar la información, y generar visualizaciones que respondan directamente al prompt.
 
@@ -1453,7 +1518,7 @@ El motor de prompts implementa seguridad en distintos niveles:
 4.	Auditoría y trazabilidad: Cada prompt, consulta generada y respuesta visual se registra con metadatos como usuario, fecha, origen, tipo de acceso y resultado. Esto permite revisar o auditar cualquier consulta posterior.
 
 
-5.	Bloqueo y reformulación de prompts sensibles: Si un prompt intenta acceder a datos restringidos (por ejemplo: “mostrame ingresos por persona en mi distrito”), el sistema puede reformular automáticamente la consulta o negarla, manteniendo siempre la trazabilidad del intento.
+5.	Bloqueo y reformulación de prompts sensibles: Si un prompt intenta acceder a datos restringidos (por ejemplo: “muéstrame ingresos por persona en mi distrito”), el sistema puede reformular automáticamente la consulta o negarla, manteniendo siempre la trazabilidad del intento.
 
 
 
@@ -1508,9 +1573,9 @@ Reglas Adicionales (Policies)
 - No acceso a APIs de descarga.
 - Prohibición de 'Content-Disposition: attachment' en headers.
 
-### Integración y Configuración del Reporteador (Amazon QuickSight)
+### Integración y Configuración del Reportador (Amazon QuickSight)
 
-En lugar de construir manualmente todas las restricciones de visualización desde el frontend, se ha decidido utilizar Amazon QuickSight como herramienta de visualización integrada. Este reporteador permite aplicar configuraciones específicas para asegurar que los dashboards cumplan con las políticas de no exportación ni extracción de datos.
+En lugar de construir manualmente todas las restricciones de visualización desde el frontend, se ha decidido utilizar Amazon QuickSight como herramienta de visualización integrada. Este reportador permite aplicar configuraciones específicas para asegurar que los dashboards cumplan con las políticas de no exportación ni extracción de datos.
 
 ### Configuración Aplicada en QuickSight
 
@@ -1548,5 +1613,51 @@ configurados en Lake Formation, solo permiten lectura controlada (con RLS) y no 
 | Pagos y transacciones       | Stripe / SINPE APIs                              | Fallas de API, rechazos                  | Balanceo + rutas secundarias por fallback                       | Reintento con backoff y alerta manual                      |
 | Alertas y Logs              | CloudWatch + CloudTrail + Security Hub           | Logs centralizados, alertas proactivas   | Replicación logs / dashboards multientorno                      | Retención extendida + exportación a S3                     |
 | CI/CD        | GitHub Actions / AWS CodePipeline                | Estado de pipelines, pasos fallidos      | Jobs paralelos + runners de backup                             | Reejecución manual y automática de jobs fallidos           |
+
+## Evaluación de riesgos
+Esta evaluación de riesgos va a ser realizada con la metodología de ISO 31000, se van a identificar, evaluar y proponer un tratamiento a estos riesgos potenciales del sistema, se debe de tener en cuenta que estos riesgos mencionados no son ni van a ser los únicos que se pueden presentar en el sistema y que siempre se pueden extraer más si se hace un análisis más profundo de estos.
+
+### Identificación de riesgos
+| ID| Riesgo                                         | Descripción                                                   | Fuente/Amenaza                              | Impacto Potencial                                 |     
+|---|------------------------------------------------|---------------------------------------------------------------|---------------------------------------------|----------------------------------------------------|  
+|R1 |Violación de llaves tripartitas                 |Acceso no autorizado o reconstrucción indebida de la llave     |Robo o colusión entre partes                 |Acceso a datos sensibles                            |
+|R2 |Pérdida de partes de la llave tripartita        |Imposibilidad de reconstruir la llave si se pierden 2 partes   |Error humano, fallo de custodia              |Pérdida de acceso a datos críticos                  |
+|R3 |Acceso no autorizado a datos sensibles          |Acceso indebido a datos por personal técnico o externo         |Fallo del sistema de restricción             |Violación de privacidad                             |
+|R4 |Fallo en mecanismos de auditoría/logs           |Logs incompletos, alterados o no generados                     |Fallo técnico, mala configuración            |Incumplimiento normativo, falta de trazabilidad     |
+|R5 |Ataques a la infraestructura cloud              |Ataque DDoS, explotación de vulnerabilidades                   |Atacantes externos                           |Caída de servicios, fuga de datos                   |
+|R6 |Configuración incorrecta de políticas de IAM    |Permisos excesivos, políticas mal aplicadas                    |Error humano, mala gestión                   |Acceso indebido a datos sensibles                   |
+|R7 |Fuga de datos por el servicio de IA o dashboards|Exportación indirecta de datos sensibles vía visualizaciones   |Uso malicioso, IA mal configurada            |Violación de confidencialidad, uso indebido de datos|
+|R8 |Incumplimiento de leyes/normativas              |Falta de controles, evidencia o procesos                       |Desconocimiento, mala implementación         |Multas, cierre de operaciones, daño reputacional    |
+|R9 |Pérdida de logs o datos históricos              |Eliminación accidental o corrupción de logs/datos              |Fallo técnico, error humano                  |Imposibilidad de auditoría, pérdida de evidencia    |
+|R10|Fallo en mecanismos de alerta                   |Alertas no generadas o no atendidas a tiempo                   |Fallo técnico, saturación, mala configuración|Incidentes no detectados, escalamiento de daños     |
+
+### Análisis de Riesgos
+
+| ID  | Probabilidad | Impacto | Nivel de Riesgo | Justificación                                                                                       |
+|-----|--------------|---------|-----------------|-----------------------------------------------------------------------------------------------------|
+| R1  | Baja         | Alto    | Alto            | Custodia distribuida, pero riesgo si hay colusión entre las otras 2 partes                          |
+| R2  | Baja         | Alto    | Medio           | Redundancia (2 de 3 partes), pero hay riesgo si se pierden 2                                        |
+| R3  | Media        | Alto    | Alto            | Controles robustos, pero riesgo por acciones de mismos trabajadores                                 |
+| R4  | Baja         | Medio   | Medio           | Logs automatizados, pero riesgo por fallo técnico                                                   |
+| R5  | Baja         | Alto    | Medio           | Cloud seguro, pero que se den ataques avanzados es posible                                          |
+| R6  | Media        | Alto    | Alto            | Políticas que pueden incurrir en errores humanos                                                    |
+| R7  | Baja         | Medio   | Medio           | Se tienen restricciones, pero hay riesgo que alguna política o restricción no funcione como debería |
+| R8  | Baja         | Alto    | Medio           | Cumplimiento planificado, pero hay probabilidad de cambios legales                                 |
+| R9  | Baja         | Medio   | Bajo            | Se poseen buenos planes de backups y retención, pero es posible un error humano                     |
+| R10 | Media        | Medio   | Medio           | Se posee un sistema automatizado, pero existe riesgo de saturación o fallo                          |
+
+### Tratamiento de riesgos 
+| ID  | Controles/Mitigaciones                                                                                                |
+|-----|-----------------------------------------------------------------------------------------------------------------------|
+| R1  | Monitoreo constante de accesos o cambio a modelo donde se ocupen las 3 partes si se dan muchos problemas de seguridad |
+| R2  | Procedimientos de backup de partes, monitoreo de integridad de partes                                                 |
+| R3  | Proxy seguro, monitoreo continuo, segregación de ambientes y otras estrategias anteriormente mencionadas              |
+| R4  | Logs inmutables, auditoría periódica, alertas de fallo de logging                                                     |
+| R5  | DDoS protection, monitoreo de amenazas y plan de respuesta a incidentes                                               |
+| R6  | Revisión periódica de políticas IAM/ABAC                                                                              |
+| R7  | Limitar exportaciones, monitoreo de patrones de acceso, revisión de prompts IA                                        |
+| R8  | Auditoría de cumplimiento, capacitación legal al equipo encargado                                                     |
+| R9  | Backups automáticos y retención en S3                                                                                 |
+| R10 | Pruebas de alertas, redundancia en canales de notificación y monitoreo de efectividad de alertas                      |
 
 
