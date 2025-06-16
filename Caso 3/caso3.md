@@ -14,18 +14,140 @@ Juan Carlos Valverde
 
 La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistema nacional de datos que permita a instituciones públicas, empresas privadas y ciudadanos compartir, acceder y utilizar información de manera fácil, segura y eficiente. Este documento describe la arquitectura técnica base del sistema, detallando sus componentes clave (como bases de datos, interfaces y protocolos de seguridad) y cómo estos se integran para garantizar que los datos sean interoperables (compatibles entre diferentes sistemas), protegidos contra riesgos y accesibles para quienes los necesiten. El objetivo es sentar las bases de una infraestructura que impulse la transparencia, la innovación y la toma de decisiones basada en evidencia, beneficiando a todo el país.
 
+# Plan de Ejecucion
+
+![imagen](Recursos/PlanEjecucion.png)
+
+# Milestones
+
+| Hito | Fecha | Descripcion |
+|:-|:-|:-|:-|
+| Inicio del Proyecto	 | 	10 Junio 2025 | Lanzamiento oficial del proyecto, asignación de equipo y definición detallada de requerimientos. |
+| Gobernanza y Seguridad Definidas | 12 Julio 2025 | Diseño completo de políticas de autenticación, control de acceso, trazabilidad y gobernanza de llaves. |
+| Infraestructura Lista | 2 Agosto 2025 | Configuración de entornos Dev, QA y Prod con arquitectura serverless y contenedores en AWS. |
+| Backoffice y API Base Desarrollados	 | 6 Setiembre 2025 | Desarrollo funcional del portal interno con gestión de operadores, llaves y registros. |
+| Motor de Carga y Validación Integrado	 | 27 Setiembre 2025 | Integración del sistema para ingestión, validación, monitoreo y segmentación de datasets. |
+| Pruebas de Seguridad Completadas	 | 11 Octubre 2025 | Validación exhaustiva de accesos, cifrado, reversibilidad, trazabilidad y detección de anomalías. |
+| Lanzamiento Inicial del Sistema	 | 25 Octubre 2025 | Versión productiva operativa con primeros usuarios registrados y flujos activos en producción. |
+
+## Milestone 1: Inicio del Proyecto 
+
+| KPI                                 | Objetivo                          | Recolección / Cálculo                                      |
+|-------------------------------------|-----------------------------------|-------------------------------------------------------------|
+| % de roles contratados              | > 90% antes de la semana 2        | Revisión de onboarding en sistema de RRHH / Notion          |
+| Kickoff ejecutado                   | 1 reunión formal                  | Acta de reunión + participación documentada                 |
+| Documento de alcance validado       | Aprobado por stakeholders         | Control de versiones + firma de aprobación digital          |
+
+---
+
+## Milestone 2: Gobernanza y Seguridad Definidas
+
+| KPI                                 | Objetivo                          | Recolección / Cálculo                                      |
+|-------------------------------------|-----------------------------------|-------------------------------------------------------------|
+| Política de acceso publicada        | Documento completo en repositorio | Archivo versión final en Git + revisión legal               |
+| Modelos RBAC implementados          | Definición en arquitectura        | Validación en repo de infraestructura (CloudFormation/CDK)  |
+| % avance en matriz de roles         | 100%                              | Checklist de roles vs funcionalidades                       |
+
+---
+
+## Milestone 3: Infraestructura Lista
+
+| KPI                                 | Objetivo                          | Recolección / Cálculo                                      |
+|-------------------------------------|-----------------------------------|-------------------------------------------------------------|
+| Tiempo medio de despliegue (Dev)    | < 15 minutos                      | Medición desde GitHub Actions o AWS CodePipeline            |
+| Infraestructura 100% como código    | 100%                              | Auditoría en repositorio IAC (infraestructura como código)  |
+| Ambientes disponibles (Dev, QA, Prod)| 3 funcionando                     | Verificación de endpoints y entornos accesibles             |
+
+---
+
+## Milestone 4: Backoffice y API Base Desarrollados
+
+| KPI                                 | Objetivo                          | Recolección / Cálculo                                      |
+|-------------------------------------|-----------------------------------|-------------------------------------------------------------|
+| % de endpoints funcionales          | >= 80% del MVP definidos          | Test de integración automatizados (Postman / Jest)          |
+| Cobertura de pruebas API            | > 70%                             | Reportes de cobertura de testing (e.g., Jest / Istanbul)    |
+| Backoffice navegable (mínimo)       | UI visible + login funcional      | QA interna + screenshots                                   |
+
+---
+
+## Milestone 5: Motor de Carga y Validación Integrado
+
+| KPI                                 | Objetivo                          | Recolección / Cálculo                                      |
+|-------------------------------------|-----------------------------------|-------------------------------------------------------------|
+| Archivos procesados correctamente  | > 95% de pruebas                  | Logs de Glue / Lambda / S3                                 |
+| Tiempo promedio de carga            | < 2 min por archivo estándar      | Métricas CloudWatch o Prometheus                           |
+| % datasets rechazados con razón clara| 100%                              | Logs + dashboard de rechazo con motivo visible             |
+
+---
+
+## Milestone 6: Pruebas de Seguridad Completadas
+
+| KPI                                 | Objetivo                          | Recolección / Cálculo                                      |
+|-------------------------------------|-----------------------------------|-------------------------------------------------------------|
+| Vulnerabilidades críticas abiertas  | 0                                 | Reportes de AWS Inspector / OWASP                          |
+| Pruebas de penetración ejecutadas   | Al menos 1 ciclo completo         | Evidencia de informe y recomendaciones integradas           |
+| Alertas configuradas                | ≥ 5 alertas clave                 | AWS GuardDuty + Security Hub + CloudWatch Alarms            |
+
+---
+
+## Milestone 7: Lanzamiento Inicial del Sistema
+
+| KPI                                 | Objetivo                          | Recolección / Cálculo                                      |
+|-------------------------------------|-----------------------------------|-------------------------------------------------------------|
+| Uptime durante la primera semana    | ≥ 99.5%                           | AWS CloudWatch Logs + Status Checks                         |
+| Consultas exitosas a API            | ≥ 95%                             | Métricas de API Gateway                                     |
+| Usuarios registrados                | ≥ 50 organizaciones o individuos  | Tabla de usuarios en RDS / DynamoDB                         |
+| Dashboards construidos              | ≥ 20 por usuarios reales          | Métricas de frontend + trazas de uso en base de datos       |
+
+---
+
+# Estructura del Equipo
+
+| Rol                       | Responsabilidades                                                                 |
+|---------------------------|------------------------------------------------------------------------------------|
+| Líder de Proyecto         | Coordinación general del equipo, reportes, cronograma y relación con stakeholders |
+| Arquitecto de Software    | Diseño de gobernanza, infraestructura, seguridad y visión técnica integral        |
+| DevOps Engineer           | Gestión de CI/CD, ambientes, monitoreo, seguridad, e infraestructura como código  |
+| Backend Developer         | Implementación de APIs, control de acceso, cifrado, auditoría                     |
+| Frontend Developer        | Desarrollo del backoffice, formularios y dashboards internos                      |
+| Especialista en Seguridad | Cifrado, políticas de acceso, manejo de llaves, cumplimiento normativo            |
+| QA Engineer               | Automatización de pruebas, validaciones funcionales y de seguridad                |
+| Analista de Datos         | Diseño de modelos de datos, metadatos, trazabilidad, visualización                |
+| Gestor Legal/Regulatorio  | Apoyo en contratos, cumplimiento con leyes de datos y documentación legal         |
+
+# Recursos del Proyecto
+| Recurso                     | Uso                                                                 |
+|-----------------------------|----------------------------------------------------------------------|
+| AWS Services                | Hosting, ejecución, escalado, seguridad y almacenamiento             |
+| GitHub / GitLab             | Gestión del repositorio de código, issues y CI/CD pipelines         |
+| Herramientas de Comunicación| Slack / Teams para colaboración entre roles                         |
+| Documentación Técnica       | Confluence / Notion / Google Docs para specs y decisiones técnicas  |
+| Monitoreo y Logging         | AWS CloudWatch, CloudTrail, GuardDuty, Grafana (opcional)            |
+| Herramientas de IA          | Textract, Glue, SageMaker para validación inteligente y flujos ETL  |
+
+# Stack de Principios Recomendado para Data Pura Vida
+
+| Categoría        | Práctica Prioritaria                                                                 |
+|------------------|---------------------------------------------------------------------------------------|
+| Seguridad     | OWASP adaptado + Zero Trust aplicado a infraestructura y lógica de negocio          |
+| Modularidad   | Principios SOLID en servicios + Arquitectura Hexagonal para backend desacoplado     |
+| Código mantenible | Clean Code con funciones específicas, nombres claros y lógica separada           |
+| DevOps & CI/CD | Twelve-Factor App adaptado a AWS Lambda, API Gateway, S3, Secrets Manager          |
+| Auditoría & Gobierno | Registros estructurados, reversibilidad explícita y trazabilidad de acciones |
+
+
 # Arquitectura Global
 
-# Definición de la Arquitectura
+## Definición de la Arquitectura
 
-## Objetivos de la Arquitectura
+### Objetivos de la Arquitectura
 
 - Establecer una visión técnica clara para todos los actores involucrados.
 - Asegurar escalabilidad, trazabilidad, seguridad y mantenibilidad desde el diseño.
 - Definir los componentes principales del sistema y sus responsabilidades.
 - Proveer una guía para futuras decisiones técnicas.
 
-## Componentes principales
+### Componentes principales
 
 | Componente                             | Descripción                             |
 |----------------------------------------|-----------------------------------------|
@@ -38,7 +160,7 @@ La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistem
 | Módulos de IA		                     | Ejecutan validación documental, prompting para visualizaciones inteligentes y sugerencias de uso de datasets.|
 | Sistema de Seguridad	                 | Aplica cifrado en tránsito y en reposo, manejo de llaves (incluyendo llaves tripartitas) y control de accesos por roles y contexto.|
 
-## Componentes Arquitectónicos y Tecnologías AWS Native Sugeridas
+### Componentes Arquitectónicos y Tecnologías AWS Native Sugeridas
 
 | Componente                             | Proposito                             | Tecnología Propuesta                  |
 |----------------------------------------|---------------------------------------|---------------------------------------|
@@ -1407,6 +1529,24 @@ configurados en Lake Formation, solo permiten lectura controlada (con RLS) y no 
 #### Auditoría y alertas:
   - Las visualizaciones se auditan mediante CloudTrail y alertas configuradas en CloudWatch y Macie para detectar comportamientos inusuales.
 
+# Servicios Críticos: Configuración, Monitoreo, Alta Disponibilidad y Fallback
 
+| Dominio                         | Servicio / Componente Crítico                    | Monitoreo                                | Alta Disponibilidad (HA)                                       | Fallback o Recuperación                                     |
+|----------------------------------|--------------------------------------------------|------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------|
+| Autenticación y Seguridad   | Amazon Cognito                                   | CloudWatch Metrics + CloudTrail Logs     | Multi-AZ + replicación automática                               | Reintentos automáticos / login alternativo (email/token)    |
+|                                  | AWS WAF + GuardDuty                              | Alertas por IP sospechosa / tráfico anómalo | Global Cloud WAF + integración GuardDuty                        | Bloqueo automático + whitelisting manual                    |
+|                                  | AWS IAM / Secrets Manager                        | Logs de uso + rotación automática        | Disponibilidad regional + redundancia de clave                  | Política de recuperación de secretos                        |
+| API Gateway & Backend       | Amazon API Gateway + AWS Lambda                  | Latencia, error rate, logs CloudWatch    | Distribución regional + concurrencia con fallback por región    | Circuit breaker + reintentos con backoff exponencial       |
+|                                  | Servicios Node.js + Express                      | Métricas de salud / logs / trazas X-Ray  | Balanceo por región / ECS o Lambda Multi-AZ                     | Health checks y failover automatizado                      |
+| Carga y Validación de Datos | AWS Glue + Lambda ETDL                           | Fallos de transformación / tiempos lentos| Glue multi-worker + Lambda concurrente                         | Reejecución automática + colas de reintento (SQS + DLQ)     |
+|                                  | Validación semántica con AI (SageMaker)         | Accuracy, tasa de fallos, tiempos        | Multi-endpoint en SageMaker Hosting                             | Fallback a validación manual o heurística                  |
+| Almacenamiento y Acceso     | Amazon S3 (Data Lake)                            | Accesos, tamaños, errores de I/O         | Replicación cross-region + Multi-AZ buckets                     | Versionado habilitado + recuperación de versiones previas  |
+|                                  | PostgreSQL / Aurora                              | Query errors, slow logs, CPU, RAM        | Aurora con read-replicas y failover automático                  | Snapshots + restore programado                             |
+|                                  | DynamoDB                                         | Consumo RCU/WCU, throttling              | Multi-AZ, on-demand backup                                      | Fallback a caché o endpoint alternativo                    |
+| Interfaz y Backoffice       | Frontend React (Amplify Hosting / S3 static)     | Uptime, errores de JS, tráfico           | Multi-CDN (CloudFront) + cache distribuido                      | Página estática de error + modo lectura degradado          |
+|                                  | Backoffice administrativo                        | Trazas, errores de acceso, integridad logs| Deploy separado con failover por entorno                       | Acceso de solo lectura para soporte                        |
+| Pagos y transacciones       | Stripe / SINPE APIs                              | Fallas de API, rechazos                  | Balanceo + rutas secundarias por fallback                       | Reintento con backoff y alerta manual                      |
+| Alertas y Logs              | CloudWatch + CloudTrail + Security Hub           | Logs centralizados, alertas proactivas   | Replicación logs / dashboards multientorno                      | Retención extendida + exportación a S3                     |
+| CI/CD        | GitHub Actions / AWS CodePipeline                | Estado de pipelines, pasos fallidos      | Jobs paralelos + runners de backup                             | Reejecución manual y automática de jobs fallidos           |
 
 
