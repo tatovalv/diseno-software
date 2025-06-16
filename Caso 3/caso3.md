@@ -1660,4 +1660,49 @@ Esta evaluación de riesgos va a ser realizada con la metodología de ISO 31000,
 | R9  | Backups automáticos y retención en S3                                                                                 |
 | R10 | Pruebas de alertas, redundancia en canales de notificación y monitoreo de efectividad de alertas                      |
 
+_______________________________________________________
 
+# Customer Journeys y Service Design
+
+Estos customers journeys consideran:
+
+- El contexto del usuario
+
+- Las etapas por las que pasa
+
+- Sus acciones
+
+- Sus emociones
+
+- Sus puntos de contacto con la plataforma
+
+- Los problemas o fricciones que enfrenta
+
+- Las oportunidades de mejora
+
+Para el Service Design se diseña un Blueprints, el cual considera:
+
+- Acciones del usuario
+
+- Acciones visibles del sistema
+
+- Acciones internas del sistema
+
+- Soporte técnico o herramientas involucradas
+
+- Puntos de dolor (pain points)
+
+## 1. Registro de nueva entidad pública
+
+![imagen](Recursos/Registro.png)
+![imagen](Recursos/BP-Registro.png)
+
+## 2. Subida de un nuevo dataset desde una entidad 
+
+![imagen](Recursos/NuevoDataset.png)
+![imagen](Recursos/BP-NuevoDataset.png)
+
+## 3. Consulta ciudadana con IA (prompt-to-dashboard) 
+
+![imagen](Recursos/Consulta.png)
+![imagen](Recursos/BP-Consulta.png)
