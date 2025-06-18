@@ -344,6 +344,8 @@ e) Permisos
 - Permisos auditados y rotados trimestralmente.
 
 
+Este diseño refuerza la seguridad desde el almacenamiento hasta la carga de datos, mediante cifrado en reposo con AWS KMS (llaves tripartitas), control de acceso granular con Lake Formation (RLS + RBAC), y transporte cifrado con TLS 1.3. Además, incorpora inteligencia artificial en varias etapas: Textract y Comprehend permiten validar documentos y metadatos automáticamente, mientras que el motor reactivo detecta deltas y estructura los datos sin intervención humana. Si bien este enfoque ofrece alta trazabilidad, escalabilidad y control, introduce complejidad en la administración de versiones y relaciones entre datasets. Esto se mitiga con la separación de metadatos operacionales en DynamoDB y la automatización de Glue Crawlers y scripts ETL.
+
 
 ## Diagrama de Contenedores
 
@@ -361,6 +363,53 @@ e) Permisos
 | Data Lake		                         | Amazon S3, Glue Catalog, Lake Formation, DynamoDB |
 | Seguridad 	                         | AWS KMS, Secrets Manager, Shield, WAF   |
 | Backoffice	                         | React + shadcn/ui + RBAC modular        |
+
+## Diseño de arquitectura desde la vista de capas (alta) hasta la vista de clases/patrones (baja)
+
+### Diseño Arquitectónico: Vista de Capas y Patrones de Clases
+
+La arquitectura de Data Pura Vida se organiza en una estructura de capas lógica y desacoplada, siguiendo una aproximación **Clean Architecture** con inspiración en la **Arquitectura Hexagonal**, para mantener la independencia entre las reglas de negocio y los detalles de implementación.
+
+#### Vista de Capas (Alta)
+
+1. **Capa de Presentación (Frontend):**
+   - Framework: ReactJS + Tailwind.
+   - Funcionalidad: renderización de dashboards, formularios, exploración de datos y backoffice.
+   - Comunicación vía API REST/GraphQL.
+   - Protección mediante OAuth2 y JWT.
+
+2. **Capa de Aplicación (Orquestación):**
+   - Implementada en Node.js (NestJS) o AWS Lambda.
+   - Contiene los casos de uso (use-cases) y lógica de orquestación (validación, control de flujo, reglas del dominio).
+   - Utiliza patrones como **Command**, **Observer** y **Factory** según necesidad.
+
+3. **Capa de Dominio (Reglas de Negocio):**
+   - Entidades del sistema: Usuario, Dataset, Llave, Registro de auditoría, etc.
+   - Uso de **Value Objects**, **Aggregates** y **Domain Services**.
+   - Lenguaje ubicuo reflejado en nombres y estructuras.
+
+4. **Capa de Infraestructura (Adaptadores):**
+   - Conexiones con bases de datos (PostgreSQL, DynamoDB), datalake (S3), servicios de IA (Textract, Comprehend), y notificaciones externas (SES, Twilio).
+   - Manejo de persistencia, colas, cache y API externa.
+   - Uso de patrones como **Adapter**, **Proxy**, **Repository** y **Service Locator**.
+
+### Vista de Clases y Patrones (Baja)
+
+- **UsuarioService** (Aplicación):
+  - Métodos: `registrarUsuario()`, `asignarLlave()`, `activarCuenta()`.
+  - Interactúa con `UsuarioRepository` y `CifradoService`.
+
+- **DatasetValidator** (Dominio):
+  - Patrones aplicados: **Strategy** para reglas de validación dinámicas.
+
+- **AutenticacionMiddleware** (Infraestructura):
+  - Patrones: **Chain of Responsibility** para aplicar MFA, prueba de vida, verificación geográfica.
+
+- **PromptPlanner → PromptExecutor** (IA):
+  - Patrón: **Planner-Executor** para separar análisis semántico de ejecución de consultas.
+
+- **Reactor ETDL** (Carga inteligente):
+  - Patrón: **Reactive Pattern** + **Event-Driven** para procesar entradas de datos automáticamente con decisiones inteligentes.
 
 ## Riesgos técnicos iniciales identificados
 
@@ -896,47 +945,67 @@ Ubicación: S3 > Bucket > Propiedades > Cifrado
 - Activar cifrado del lado del servidor (SSE-KMS)
 - Seleccionar o crear una llave KMS personalizada o gestionada por AWS
 - Aplicar la política a todos los objetos nuevos
-Agregar Screen
+
+
+![imagen](Recursos/1.png)
 
 #### Amazon RDS – PostgreSQL
 Ubicación: RDS > Crear base de datos > Configuración de almacenamiento
 - Habilitar cifrado al crear la instancia
 - Seleccionar llave KMS
- Agregar Screen
+
+
+![imagen](Recursos/2.png)
 
 #### DynamoDB – Cifrado
 Ubicación: DynamoDB > Tablas > Propiedades > Encryption
 - Tipo de cifrado: AWS managed CMK (SSE-KMS)
-Agregar Screen 
+
+
+![imagen](Recursos/3.png)
 
 #### AWS KMS – Llave Tripartita
 Ubicación: AWS KMS > Claves
 - Crear una nueva llave simétrica
 - Configurar acceso por políticas IAM específicas
-Agregar Screen 
+
+
+![imagen](Recursos/4.png)
 
 #### Secrets Manager – Almacenamiento de partes de llave
 Ubicación: Secrets Manager > Crear secreto
 - Guardar una de las partes generadas por Shamir’s Secret Sharing
-Agregar Screen 
+
+
+![imagen](Recursos/5.png)
 
 #### API Gateway + ACM – Cifrado en Tránsito
 Ubicación: API Gateway > Dominios personalizados
 - Vincular certificado SSL generado en ACM
 - Forzar HTTPS-only
-Agregar Screen 
+
+
+![imagen](Recursos/6.png)
+
 
 #### CloudTrail y CloudWatch – Auditoría y Logs
 Ubicación: CloudTrail > Trails / CloudWatch > Log Groups
 - Verificar habilitación en todas las regiones
 - Configurar retención de logs y métricas
-Agregar Screen 
+
+
+![imagen](Recursos/7_1.jpg)
+
+
+![imagen](Recursos/7.2.png)
 
 #### Cognito & IAM – Control de Acceso
 Ubicación: Cognito > User Pools / IAM > Roles y políticas
 - Habilitar MFA y segmentación de grupos
 - Aplicar políticas de acceso basadas en atributos (ABAC)
-Agregar Screen 
+
+
+La política está alineada con las mejores prácticas de seguridad y cumplimiento normativo, incluyendo la implementación de cifrado extremo a extremo, llaves tripartitas distribuidas, y protocolos seguros como TLS 1.3. Se emplean herramientas como Macie para identificar datos sensibles en buckets, y CloudTrail para auditar el acceso. Aunque la gestión distribuida de llaves puede ser operativamente compleja, se mitiga mediante custodios designados, quorum mínimo y automatización de recuperación y rotación de llaves con AWS Secrets Manager y STS. 
 
 ## Diseño de Llave Criptográfica Tripartita
 Las llaves tripartitas en el contexto de este sistema van a ser de utilidad para proteger las claves criptográficas generadas distribuyendo una parte a Data Pura Vida y las otras dos a personas, entidades, etc. definidas por el usuario.
@@ -1300,10 +1369,52 @@ Ejemplo de Manifest JSON
 | ingestion_type    | ENUM (file/api/db)     | Sí            | Tipo de fuente de datos             |
 | last_updated      | TIMESTAMP              | No            | Fecha de última modificación        |
 
+El diseño de estas interfaces prioriza la interoperabilidad y la automatización segura. La autenticación OAuth2 con JWT y el uso de mTLS garantizan la integridad de los datos recibidos desde APIs, archivos o bases remotas. Además, se aplica inteligencia artificial en el motor ETDL para validar semánticamente estructuras y contenido de los datasets entrantes, identificando duplicidades y errores. Esta arquitectura permite escalar de manera segura, mitigando el riesgo de ingestiones erróneas con validaciones automáticas y monitoreo activo por servicio.
 
 
+## Integraciones claras con sistemas externos: APIs, llaves, protocolos de autenticación (OAuth2, JWT), esquemas de clase
 
+### Integraciones con Sistemas Externos y Mecanismos de Autenticación
 
+El ecosistema Data Pura Vida contempla múltiples integraciones seguras con servicios externos y protocolos estándar.
+
+#### APIs externas utilizadas
+
+| Integración          | Función                                | Protocolo      | Autenticación         |
+|----------------------|----------------------------------------|----------------|------------------------|
+| Stripe / SINPE APIs  | Procesamiento de pagos por datasets    | REST           | API Key + Webhook firmado |
+| Twilio               | Notificaciones de aprobación, alertas  | REST           | Token bearer           |
+| Amazon SES           | Envío de correos                       | SMTP / SDK     | IAM Role               |
+| Datasets externos    | Sincronización de datos (INEC, Hacienda, etc.) | REST / Push   | OAuth2, Token delegados   |
+
+#### Autenticación y Autorización
+
+- **Protocolo base:** OAuth2.0 con flujos adaptados a usuarios públicos, institucionales y técnicos.
+- **Tokens:** JWT firmados con claves rotadas automáticamente y validados vía AWS Cognito y Lambda.
+- **Roles y atributos:** RBAC + ABAC (via Amazon IAM).
+- **Gestión de llaves:**
+  - Llaves simétricas: AES256 generadas con AWS KMS.
+  - Llaves asimétricas: RSA para firmas y tokens.
+  - Llaves tripartitas: mediante Shamir’s Secret Sharing con partes distribuidas entre custodios.
+
+#### Ejemplo de Esquema de Clase: Token de Acceso
+
+```typescript
+class AccessToken {
+  token: string;
+  issuedAt: Date;
+  expiresAt: Date;
+  userId: string;
+  roles: string[];
+  scopes: string[];
+  signature: string;
+
+  isValid(): boolean {
+    return Date.now() < this.expiresAt.getTime();
+  }
+}
+
+```
 
 ## Arquitectura del Motor de Prompts para Consultas Inteligentes
 
@@ -1528,6 +1639,8 @@ configurados en Lake Formation, solo permiten lectura controlada (con RLS) y no 
   - No se incluye menú de opciones de descarga en el iframe embebido.
 #### Auditoría y alertas:
   - Las visualizaciones se auditan mediante CloudTrail y alertas configuradas en CloudWatch y Macie para detectar comportamientos inusuales.
+
+La estrategia implementada asegura que los usuarios solo puedan visualizar los datos dentro de la plataforma, sin posibilidad de exportarlos o reproducirlos por medios tradicionales. Se utilizan dashboards embebidos sin controles de descarga, protección reforzada con RLS, JWT temporales, y monitoreo con Macie para detectar patrones sospechosos. Aunque esta medida maximiza la protección contra la fuga de datos, podría percibirse como restrictiva. Se compensa mediante métricas de uso, explicaciones de seguridad y visualizaciones generadas automáticamente por IA que cumplen con las políticas de acceso sin comprometer la experiencia del usuario.
 
 # Servicios Críticos: Configuración, Monitoreo, Alta Disponibilidad y Fallback
 
