@@ -21,7 +21,7 @@ La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistem
 # Milestones
 
 | Hito | Fecha | Descripción |
-|:-|:-|:-|:-|
+|:-|:-|:-|
 | Inicio del Proyecto	 | 	10 junio 2025 | Lanzamiento oficial del proyecto, asignación de equipo y definición detallada de requerimientos. |
 | Gobernanza y Seguridad Definidas | 12 Julio 2025 | Diseño completo de políticas de autenticación, control de acceso, trazabilidad y gobernanza de llaves. |
 | Infraestructura Lista | 2 agosto 2025 | Configuración de entornos Dev, QA y Prod con arquitectura serverless y contenedores en AWS. |
