@@ -177,6 +177,342 @@ La plataforma Data Pura Vida es una iniciativa diseñada para crear un ecosistem
 | Servicios Externos               	     | Notificaciones, pagos, correos | Stripe / BAC APIs + Twilio + Amazon SES |
 
 
+------------------------------------------------
+
+## Diagrama de Contenedores
+
+![imagen](Recursos/DiagramaContenedores-Actualizado-DataPuraVida.png)
+
+### Tecnologías sugeridas por contenedor
+
+| Contenedor                             | Tecnologías sugeridas                   |
+|----------------------------------------|-----------------------------------------|
+| Portal Web	                         | React, Next.js, AWS Amplify             |
+| API Gateway	                         | Amazon API Gateway                      |
+| Backend API	                         | Node.js con NestJS / FastAPI / Spring Boot |
+| Autenticación	                         | Amazon Cognito + MFA                    |
+| ETDL + IA	                             | AWS Glue, Lambda, Textract, Comprehend  |
+| Data Lake		                         | Amazon S3, Glue Catalog, Lake Formation, DynamoDB |
+| Seguridad 	                         | AWS KMS, Secrets Manager, Shield, WAF   |
+| Backoffice	                         | React + shadcn/ui + RBAC modular        |
+
+## Diseño de arquitectura desde la vista de capas (alta) hasta la vista de clases/patrones (baja)
+
+### Diseño Arquitectónico: Vista de Capas y Patrones de Clases
+
+La arquitectura de Data Pura Vida se organiza en una estructura de capas lógica y desacoplada, siguiendo una aproximación **Clean Architecture** con inspiración en la **Arquitectura Hexagonal**, para mantener la independencia entre las reglas de negocio y los detalles de implementación.
+
+#### Vista de Capas (Alta)
+
+1. **Capa de Presentación (Frontend):**
+   - Framework: ReactJS + Tailwind.
+   - Funcionalidad: renderización de dashboards, formularios, exploración de datos y backoffice.
+   - Comunicación vía API REST/GraphQL.
+   - Protección mediante OAuth2 y JWT.
+
+2. **Capa de Aplicación (Orquestación):**
+   - Implementada en Node.js (NestJS) o AWS Lambda.
+   - Contiene los casos de uso (use-cases) y lógica de orquestación (validación, control de flujo, reglas del dominio).
+   - Utiliza patrones como **Command**, **Observer** y **Factory** según necesidad.
+
+3. **Capa de Dominio (Reglas de Negocio):**
+   - Entidades del sistema: Usuario, Dataset, Llave, Registro de auditoría, etc.
+   - Uso de **Value Objects**, **Aggregates** y **Domain Services**.
+   - Lenguaje ubicuo reflejado en nombres y estructuras.
+
+4. **Capa de Infraestructura (Adaptadores):**
+   - Conexiones con bases de datos (PostgreSQL, DynamoDB), datalake (S3), servicios de IA (Textract, Comprehend), y notificaciones externas (SES, Twilio).
+   - Manejo de persistencia, colas, cache y API externa.
+   - Uso de patrones como **Adapter**, **Proxy**, **Repository** y **Service Locator**.
+
+### Vista de Clases y Patrones (Baja)
+
+- **UsuarioService** (Aplicación):
+  - Métodos: `registrarUsuario()`, `asignarLlave()`, `activarCuenta()`.
+  - Interactúa con `UsuarioRepository` y `CifradoService`.
+
+- **DatasetValidator** (Dominio):
+  - Patrones aplicados: **Strategy** para reglas de validación dinámicas.
+
+- **AutenticacionMiddleware** (Infraestructura):
+  - Patrones: **Chain of Responsibility** para aplicar MFA, prueba de vida, verificación geográfica.
+
+- **PromptPlanner → PromptExecutor** (IA):
+  - Patrón: **Planner-Executor** para separar análisis semántico de ejecución de consultas.
+
+- **Reactor ETDL** (Carga inteligente):
+  - Patrón: **Reactive Pattern** + **Event-Driven** para procesar entradas de datos automáticamente con decisiones inteligentes.
+
+## Riesgos técnicos iniciales identificados
+
+1. Complejidad de integraciones entre componentes con IA
+Mitigación propuesta: Diseñar APIs intermedias desacopladas
+
+2. Manejo de llaves criptográficas tripartitas	
+Mitigación propuesta: Uso de custodios distribuidos con mecanismo de quorum
+
+3. Cumplimiento normativo y legal		
+Mitigación propuesta: Integración temprana con asesoría legal para auditoría
+
+4. Seguridad de datos en ambientes técnicos	
+Mitigación propuesta: Políticas Zero Trust + cifrado forzado en todas las capas
+
+-------------------------------------------------------------------------------------------------
+
+## Modelo de Gobernanza de Seguridad y Accesos
+
+1. Autenticación y verificación de identidad
+
+| Elemento                               | Implementación propuesta                |
+|----------------------------------------|-----------------------------------------|
+| Registro inicial	                     | Validación con cédula, biometría, prueba de vida e IP de Costa Rica             |
+| Login	                                 | Usuario + contraseña + Autenticación Multifactor (MFA)                      |
+| Validación reforzada	                 | En caso de transacciones sensibles, requerir doble MFA o token por app |
+| Identificación de dispositivos	     | Huella de navegador/IP, posibilidad de marcar IP como fija o temporal                   |
+
+Tecnología recomendada: Amazon Cognito + AWS WAF para bloqueo por IP + Amazon GuardDuty para anomalías.
+
+2. Modelo de Control de Acceso (RBAC + Contexto)
+
+Definición de Roles Base:
+
+| Rol                                    | Permisos principales               |
+|----------------------------------------|-----------------------------------------|
+| Usuario Básico	                     | Visualizar datasets públicos, gestionar perfil y crear dashboards personales.            |
+| Proveedor de Datos	                 | Subir, editar y configurar datasets; definir reglas de acceso y monetización.                      |
+| Comprador de Datos	                 | Acceder a datasets adquiridos, consumirlos vía dashboards, gestionar límites. |
+| Administrador de Entidad	             | Gestionar organización, usuarios asociados, llaves y autorizaciones.                   |
+| Auditor Interno       	             | Visualizar logs, métricas, y generar reportes de actividad por usuario.                   |
+| Operador (Backoffice) 	             | Validar registros, gestionar flujos de carga, revisar accesos y generar reportes.                   |
+| Superadmin del sistema	             | Control total: gestionar entidades, revocar accesos, regenerar llaves, visualizar todo.                   |
+
+2.1 Guía de *How To* crear un rol en Cognito
+
+* Acceder a la consola de AWS Cognito y selecciona tu User Pool.
+* Dirifirse a la sección "Grupos" y haz clic en "Crear grupo".
+* Asignar un nombre descriptivo al grupo (ejemplo: data-analyst ) y definir las políticas de permisos asociadas al grupo usando AWS IAM.
+* Asociar usuarios existentes o nuevos al grupo creado.
+
+Ejemplo de política IAM para acceso de (solo lectura) a S3:
+```json
+{
+  "Version": "XXXX-XX-XX",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": ["arn:aws:s3:::datapuravida-datalake/*"]
+    }
+  ]
+}
+```
+
+Contexto Adicional de Acceso:
+
+| Contexto evaluado                      | Ejemplo de regla aplicada               |
+|----------------------------------------|-----------------------------------------|
+| Ubicación geográfica                   | Registro solo desde Costa Rica; acceso externo con IP declarada.            |
+| Dispositivo / IP  	                 | Se restringe acceso a ciertas funciones desde IPs públicas o redes no confiables.       |
+| Frecuencia de uso 	                 | Mecanismo de rate limiting si un usuario excede el uso permitido. |
+| Tipo de operación     	             | Operaciones sensibles como descifrado requieren autenticación reforzada.                  |
+
+Motor de políticas contextualizadas puede ser implementado con AWS Identity Center + reglas personalizadas vía Lambda.
+
+1. Restricción de Accesos a Nivel de Datos
+El modelo de seguridad incluye segmentación de acceso granular basada en entidad, usuario y nivel de autorización. Para garantizar un control completo sobre la visibilidad y trazabilidad de cada dataset, se definen campos mínimos obligatorios que deben estar presentes en todos los datasets cargados en la plataforma.
+
+Campos requeridos en todos los datasets para aplicar reglas de gobernanza:
+
+| Campo                      | Descripción               | Tipo de control asociado |
+|----------------------------|---------------------------|--------------------------|
+| organizacion_id            | Identificador único de la organización propietaria del dato  | Control de visibilidad por entidad (Row-Level Security) |
+| user_id  	                 | Identificador del usuario que cargó o tiene permiso sobre el dato | Auditoría, filtrado por responsable, trazabilidad individual |
+| share_id 	                 | Identificador del grupo o token de compartición (grupo de acceso compartido o modelo de monetización) | Control de compartición, licencias de acceso, métricas de uso compartido |
+
+Estos campos deben ser incluidos en los metadatos del dataset y deben respetarse incluso si los datos están cifrados o seudonimizados.
+
+Reglas aplicadas con estos campos:
+-	Visualización controlada por organizacion_id: Un usuario solo puede consultar filas cuyo organizacion_id pertenezca a su entidad o esté explícitamente autorizado.
+-	Filtrado por user_id en dashboards y reportes de actividad para mostrar solo datos subidos o autorizados por el usuario.
+-	Permisos derivados de share_id permiten compartir datos entre organizaciones con control temporal, volumétrico o por frecuencia.
+
+Ejemplo de política de acceso
+```sql
+WHERE organizacion_id IN (autorizadas_por_usuario_actual)
+  AND (share_id IS NULL OR share_id IN (tokens_autorizados))
+```
+
+## Diagrama de control de acceso por datos
+
+![imagen](Recursos/DiagramaControlAccesoDatos.png)
+
+4.  Llaves criptográficas y gobernanza de acceso
+
+Tipos de Llaves:
+
+| Tipo de Llave                          | Uso               |
+|----------------------------------------|-----------------------------------------|
+| Llave simétrica (AES)                  | Cifrado rápido de columnas de datos o archivos.            |
+| Llave asimétrica (RSA)                 | Validación de autenticidad y firma de documentos.                     |
+| Llave tripartita  	                 | Llave dividida en 3 partes. Se requieren 2 de 3 partes para uso. |
+
+Gestión de Llaves Tripartitas
+-	Se genera una llave única por organización.
+-	Las tres partes se entregan a:
+    o	La organización registrada
+    o	El custodio técnico (puede ser Ministerio, Hacienda, etc.)
+    o	La plataforma Data Pura Vida (bajo acceso controlado)
+-	Uso requiere autorización múltiple (2 de 3).
+-	Se usan módulos de seguridad de hardware (HSM) o servicios como AWS KMS Custom Key Store para proteger fragmentos.
+
+5. Auditoría y monitoreo
+-	Cada evento crítico (lectura, escritura, creación, descifrado, eliminación) se registra.
+-	Se generan reportes de actividad por usuario, IP, entidad, dataset y acción.
+-	Accesos a funciones restringidas quedan auditados con trazabilidad total.
+-	Sistema de alertas por comportamiento sospechoso o intentos de acceso inválidos.
+
+6. Matriz Roles y Permisos
+
+![imagen](Recursos/MatrizRolesPermisos.png)
+
+7. Roles y Condiciones Contextuales
+
+![imagen](Recursos/RolesCondicionesContextuales.png)
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+## Diseño de Infraestructura y Deploy Multinivel (Dev, QA, Prod)
+
+### Entornos definidos
+
+Se trabajará con tres entornos principales:
+
+| Entorno                    | Propósito               | Visibilidad | Accesos |
+|----------------------------|---------------------------|--------------------------|--------------------------|
+| Desarrollo (Dev)           | Desarrollo activo, pruebas unitarias, prototipos.  | Interno (equipo técnico) | Acceso libre con auditoría |
+| Calidad (QA) 	             | Pruebas funcionales, automatizadas y de integración. | Interno (QA y Dev) | Acceso validado por IP/MFA |
+| Producción (Prod) 	     | Sistema en vivo operando para usuarios reales. | Externo (usuarios reales) | Acceso limitado y monitorizado |
+
+### Diseño de Infraestructura por entorno
+#### Estructura común
+Cada entorno tendrá su propia infraestructura separada:
+
+| Componente | Tecnología / Propuesta |
+|------------|----------------------|
+| Microservicios / Contenedores | AWS ECS Fargate o EKS (Kubernetes) |
+| Almacenamiento estático | Amazon S3 (carpetas separadas por entorno) |
+| Bases de datos | Amazon RDS, con separación física y lógica |
+| Datalake | Amazon S3 + Glue + Lake Formation |
+| Backend API | API Gateway + Lambda o ECS Services |
+| Autenticación y seguridad | Cognito, IAM Roles, WAF, Secrets Manager |
+| Logs y auditoría | CloudWatch, CloudTrail, GuardDuty, Security Hub |
+
+### Flujo de despliegue y promoción
+#### Pipeline de CI/CD
+
+| Etapa | Acción |
+|-------|---------|
+| Commit | Desarrollador sube cambios |
+| Build | Generación automática de contenedores / artefactos |
+| Test en Dev | Pruebas unitarias e integración en entorno aislado |
+| Deploy a QA | Validación funcional, automatizada y manual por QA |
+| Deploy a Producción | Promoción con revisión manual, monitoreo activo |
+
+Herramientas sugeridas: GitHub Actions / GitLab CI / AWS CodePipeline
+
+#### Guía de *How to* añadir un nuevo entorno de pruebas al pipeline de GitHub Actions.
+
+* Crear un archivo de configuración para el entorno (ejemplo `env.test.json` con variables específicas del entorno de pruebas).
+
+* Actualizar el workflow de GitHub Actions `.github/workflows/deploy.yml` y agregar un nuevo job para el entorno de pruebas:
+
+* Agregar variables y secretos en GitHub (en Settings -> Secrets and variables -> Actions y agrega las credenciales necesarias).
+
+* Probar el pipeline y verificar que este ejecuta las pruebas y despliega correctamente al entorno de pruebas.
+
+#### Control de versiones y trazabilidad
+	
+Cada despliegue debe llevar:
+
+-	Código hash o número de versión
+-	Registro de cambios (changelog)
+-	Validación previa en QA
+
+	Todas las promociones se registran con trazabilidad completa.
+
+#### Control de acceso y seguridad    
+| Capa | Medidas aplicadas |
+|------|------------------|
+| Dev | Acceso abierto para desarrolladores con logs |
+| QA | Acceso controlado, datos sintéticos y cifrados |
+| Producción | Acceso restringido, monitoreo y MFA obligatorio |
+| Red | Control por listas blancas y segmentación de VPCs |
+| Datos sensibles | Siempre cifrados en tránsito y reposo |
+
+### Auditoría y monitoreo
+-	Logs por entorno capturados vía CloudWatch + CloudTrail
+-	Alertas configuradas en QA y Producción
+-	Producción monitoreada con métricas clave:
+o	Tiempo de respuesta
+o	Errores
+o	Uso de recursos
+-	Seguridad reforzada en Producción con GuardDuty + Security Hub
+
+## Diagrama del flujo CI/CD simplificado
+![imagen](Recursos/DiagramaFLujoCICD.png)
+
+## Configuración de Scripts de Deployment – GitHub Actions
+Para cada entorno definido (Dev, QA, Producción), se emplearán pipelines automatizados de CI/CD mediante GitHub Actions. A continuación, se describen los archivos base de configuración YAML utilizados para orquestar los despliegues por entorno.
+
+1. Archivo: `.github/workflows/deploy-dev.yml`
+- Ejecutado en push a rama `develop`
+- Corre pruebas unitarias
+- Despliega automáticamente a entorno Dev (ECS / Lambda)
+- Incluye logging en CloudWatch y notificación opcional
+
+2. Archivo: `.github/workflows/deploy-qa.yml`
+- Ejecutado en push a rama `release/qa`
+- Corre pruebas integradas y de regresión
+- Despliega a entorno QA con validaciones predefinidas
+
+3. Archivo: `.github/workflows/deploy-prod.yml`
+- Ejecutado manualmente vía GitHub Actions
+- Requiere aprobación (manual trigger)
+- Despliega solo si QA fue exitoso
+- Integra monitoreo con GuardDuty y CloudTrail post-deploy
+
+Ejemplo de configuración mínima:
+
+```yaml
+name: Deploy to Dev
+on:
+  push:
+    branches: [develop]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    - name: Install dependencies
+      run: npm install
+    - name: Run tests
+      run: npm test
+    - name: Deploy to AWS Lambda
+      uses: appleboy/lambda-action@master
+      with:
+        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        function_name: data-pura-vida-dev
+        zip_file: dist/lambda.zip
+```
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Datos, Datalakes e Interoperabilidad
+
 ## Diseño del Modelo de Datalake Híbrido (Estructurado/Semi)
 
 El ecosistema Data Pura Vida requiere una plataforma de almacenamiento de datos que sea capaz de soportar un volumen masivo de registros estructurados y semiestructurados, garantizando alta disponibilidad, seguridad, escalabilidad y control detallado de los datos. Para cumplir con estos requerimientos, se propone el diseño de un Datalake híbrido basado en servicios administrados de AWS, que integre tecnologías de procesamiento inteligente y políticas de seguridad avanzadas.
@@ -346,339 +682,7 @@ e) Permisos
 
 Este diseño refuerza la seguridad desde el almacenamiento hasta la carga de datos, mediante cifrado en reposo con AWS KMS (llaves tripartitas), control de acceso granular con Lake Formation (RLS + RBAC), y transporte cifrado con TLS 1.3. Además, incorpora inteligencia artificial en varias etapas: Textract y Comprehend permiten validar documentos y metadatos automáticamente, mientras que el motor reactivo detecta deltas y estructura los datos sin intervención humana. Si bien este enfoque ofrece alta trazabilidad, escalabilidad y control, introduce complejidad en la administración de versiones y relaciones entre datasets. Esto se mitiga con la separación de metadatos operacionales en DynamoDB y la automatización de Glue Crawlers y scripts ETL.
 
-
-## Diagrama de Contenedores
-
-![imagen](Recursos/DiagramaContenedores-Actualizado-DataPuraVida.png)
-
-### Tecnologías sugeridas por contenedor
-
-| Contenedor                             | Tecnologías sugeridas                   |
-|----------------------------------------|-----------------------------------------|
-| Portal Web	                         | React, Next.js, AWS Amplify             |
-| API Gateway	                         | Amazon API Gateway                      |
-| Backend API	                         | Node.js con NestJS / FastAPI / Spring Boot |
-| Autenticación	                         | Amazon Cognito + MFA                    |
-| ETDL + IA	                             | AWS Glue, Lambda, Textract, Comprehend  |
-| Data Lake		                         | Amazon S3, Glue Catalog, Lake Formation, DynamoDB |
-| Seguridad 	                         | AWS KMS, Secrets Manager, Shield, WAF   |
-| Backoffice	                         | React + shadcn/ui + RBAC modular        |
-
-## Diseño de arquitectura desde la vista de capas (alta) hasta la vista de clases/patrones (baja)
-
-### Diseño Arquitectónico: Vista de Capas y Patrones de Clases
-
-La arquitectura de Data Pura Vida se organiza en una estructura de capas lógica y desacoplada, siguiendo una aproximación **Clean Architecture** con inspiración en la **Arquitectura Hexagonal**, para mantener la independencia entre las reglas de negocio y los detalles de implementación.
-
-#### Vista de Capas (Alta)
-
-1. **Capa de Presentación (Frontend):**
-   - Framework: ReactJS + Tailwind.
-   - Funcionalidad: renderización de dashboards, formularios, exploración de datos y backoffice.
-   - Comunicación vía API REST/GraphQL.
-   - Protección mediante OAuth2 y JWT.
-
-2. **Capa de Aplicación (Orquestación):**
-   - Implementada en Node.js (NestJS) o AWS Lambda.
-   - Contiene los casos de uso (use-cases) y lógica de orquestación (validación, control de flujo, reglas del dominio).
-   - Utiliza patrones como **Command**, **Observer** y **Factory** según necesidad.
-
-3. **Capa de Dominio (Reglas de Negocio):**
-   - Entidades del sistema: Usuario, Dataset, Llave, Registro de auditoría, etc.
-   - Uso de **Value Objects**, **Aggregates** y **Domain Services**.
-   - Lenguaje ubicuo reflejado en nombres y estructuras.
-
-4. **Capa de Infraestructura (Adaptadores):**
-   - Conexiones con bases de datos (PostgreSQL, DynamoDB), datalake (S3), servicios de IA (Textract, Comprehend), y notificaciones externas (SES, Twilio).
-   - Manejo de persistencia, colas, cache y API externa.
-   - Uso de patrones como **Adapter**, **Proxy**, **Repository** y **Service Locator**.
-
-### Vista de Clases y Patrones (Baja)
-
-- **UsuarioService** (Aplicación):
-  - Métodos: `registrarUsuario()`, `asignarLlave()`, `activarCuenta()`.
-  - Interactúa con `UsuarioRepository` y `CifradoService`.
-
-- **DatasetValidator** (Dominio):
-  - Patrones aplicados: **Strategy** para reglas de validación dinámicas.
-
-- **AutenticacionMiddleware** (Infraestructura):
-  - Patrones: **Chain of Responsibility** para aplicar MFA, prueba de vida, verificación geográfica.
-
-- **PromptPlanner → PromptExecutor** (IA):
-  - Patrón: **Planner-Executor** para separar análisis semántico de ejecución de consultas.
-
-- **Reactor ETDL** (Carga inteligente):
-  - Patrón: **Reactive Pattern** + **Event-Driven** para procesar entradas de datos automáticamente con decisiones inteligentes.
-
-## Riesgos técnicos iniciales identificados
-
-1. Complejidad de integraciones entre componentes con IA
-Mitigación propuesta: Diseñar APIs intermedias desacopladas
-
-2. Manejo de llaves criptográficas tripartitas	
-Mitigación propuesta: Uso de custodios distribuidos con mecanismo de quorum
-
-3. Cumplimiento normativo y legal		
-Mitigación propuesta: Integración temprana con asesoría legal para auditoría
-
-4. Seguridad de datos en ambientes técnicos	
-Mitigación propuesta: Políticas Zero Trust + cifrado forzado en todas las capas
-
-# Modelo de Gobernanza de Seguridad y Accesos
-
-1. Autenticación y verificación de identidad
-
-| Elemento                               | Implementación propuesta                |
-|----------------------------------------|-----------------------------------------|
-| Registro inicial	                     | Validación con cédula, biometría, prueba de vida e IP de Costa Rica             |
-| Login	                                 | Usuario + contraseña + Autenticación Multifactor (MFA)                      |
-| Validación reforzada	                 | En caso de transacciones sensibles, requerir doble MFA o token por app |
-| Identificación de dispositivos	     | Huella de navegador/IP, posibilidad de marcar IP como fija o temporal                   |
-
-Tecnología recomendada: Amazon Cognito + AWS WAF para bloqueo por IP + Amazon GuardDuty para anomalías.
-
-2. Modelo de Control de Acceso (RBAC + Contexto)
-
-Definición de Roles Base:
-
-| Rol                                    | Permisos principales               |
-|----------------------------------------|-----------------------------------------|
-| Usuario Básico	                     | Visualizar datasets públicos, gestionar perfil y crear dashboards personales.            |
-| Proveedor de Datos	                 | Subir, editar y configurar datasets; definir reglas de acceso y monetización.                      |
-| Comprador de Datos	                 | Acceder a datasets adquiridos, consumirlos vía dashboards, gestionar límites. |
-| Administrador de Entidad	             | Gestionar organización, usuarios asociados, llaves y autorizaciones.                   |
-| Auditor Interno       	             | Visualizar logs, métricas, y generar reportes de actividad por usuario.                   |
-| Operador (Backoffice) 	             | Validar registros, gestionar flujos de carga, revisar accesos y generar reportes.                   |
-| Superadmin del sistema	             | Control total: gestionar entidades, revocar accesos, regenerar llaves, visualizar todo.                   |
-
-2.1 Guía de *How To* crear un rol en Cognito
-
-* Acceder a la consola de AWS Cognito y selecciona tu User Pool.
-* Dirifirse a la sección "Grupos" y haz clic en "Crear grupo".
-* Asignar un nombre descriptivo al grupo (ejemplo: data-analyst ) y definir las políticas de permisos asociadas al grupo usando AWS IAM.
-* Asociar usuarios existentes o nuevos al grupo creado.
-
-Ejemplo de política IAM para acceso de (solo lectura) a S3:
-```json
-{
-  "Version": "XXXX-XX-XX",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["s3:GetObject"],
-      "Resource": ["arn:aws:s3:::datapuravida-datalake/*"]
-    }
-  ]
-}
-```
-
----
-
-Contexto Adicional de Acceso:
-
-| Contexto evaluado                      | Ejemplo de regla aplicada               |
-|----------------------------------------|-----------------------------------------|
-| Ubicación geográfica                   | Registro solo desde Costa Rica; acceso externo con IP declarada.            |
-| Dispositivo / IP  	                 | Se restringe acceso a ciertas funciones desde IPs públicas o redes no confiables.       |
-| Frecuencia de uso 	                 | Mecanismo de rate limiting si un usuario excede el uso permitido. |
-| Tipo de operación     	             | Operaciones sensibles como descifrado requieren autenticación reforzada.                  |
-
-Motor de políticas contextualizadas puede ser implementado con AWS Identity Center + reglas personalizadas vía Lambda.
-
-1. Restricción de Accesos a Nivel de Datos
-El modelo de seguridad incluye segmentación de acceso granular basada en entidad, usuario y nivel de autorización. Para garantizar un control completo sobre la visibilidad y trazabilidad de cada dataset, se definen campos mínimos obligatorios que deben estar presentes en todos los datasets cargados en la plataforma.
-
-Campos requeridos en todos los datasets para aplicar reglas de gobernanza:
-
-| Campo                      | Descripción               | Tipo de control asociado |
-|----------------------------|---------------------------|--------------------------|
-| organizacion_id            | Identificador único de la organización propietaria del dato  | Control de visibilidad por entidad (Row-Level Security) |
-| user_id  	                 | Identificador del usuario que cargó o tiene permiso sobre el dato | Auditoría, filtrado por responsable, trazabilidad individual |
-| share_id 	                 | Identificador del grupo o token de compartición (grupo de acceso compartido o modelo de monetización) | Control de compartición, licencias de acceso, métricas de uso compartido |
-
-Estos campos deben ser incluidos en los metadatos del dataset y deben respetarse incluso si los datos están cifrados o seudonimizados.
-
-Reglas aplicadas con estos campos:
--	Visualización controlada por organizacion_id: Un usuario solo puede consultar filas cuyo organizacion_id pertenezca a su entidad o esté explícitamente autorizado.
--	Filtrado por user_id en dashboards y reportes de actividad para mostrar solo datos subidos o autorizados por el usuario.
--	Permisos derivados de share_id permiten compartir datos entre organizaciones con control temporal, volumétrico o por frecuencia.
-
-Ejemplo de política de acceso
-```sql
-WHERE organizacion_id IN (autorizadas_por_usuario_actual)
-  AND (share_id IS NULL OR share_id IN (tokens_autorizados))
-```
-
-## Diagrama de control de acceso por datos
-
-![imagen](Recursos/DiagramaControlAccesoDatos.png)
-
-4.  Llaves criptográficas y gobernanza de acceso
-
-Tipos de Llaves:
-
-| Tipo de Llave                          | Uso               |
-|----------------------------------------|-----------------------------------------|
-| Llave simétrica (AES)                  | Cifrado rápido de columnas de datos o archivos.            |
-| Llave asimétrica (RSA)                 | Validación de autenticidad y firma de documentos.                     |
-| Llave tripartita  	                 | Llave dividida en 3 partes. Se requieren 2 de 3 partes para uso. |
-
-Gestión de Llaves Tripartitas
--	Se genera una llave única por organización.
--	Las tres partes se entregan a:
-    o	La organización registrada
-    o	El custodio técnico (puede ser Ministerio, Hacienda, etc.)
-    o	La plataforma Data Pura Vida (bajo acceso controlado)
--	Uso requiere autorización múltiple (2 de 3).
--	Se usan módulos de seguridad de hardware (HSM) o servicios como AWS KMS Custom Key Store para proteger fragmentos.
-
-5. Auditoría y monitoreo
--	Cada evento crítico (lectura, escritura, creación, descifrado, eliminación) se registra.
--	Se generan reportes de actividad por usuario, IP, entidad, dataset y acción.
--	Accesos a funciones restringidas quedan auditados con trazabilidad total.
--	Sistema de alertas por comportamiento sospechoso o intentos de acceso inválidos.
-
-6. Matriz Roles y Permisos
-
-![imagen](Recursos/MatrizRolesPermisos.png)
-
-7. Roles y Condiciones Contextuales
-
-![imagen](Recursos/RolesCondicionesContextuales.png)
-
-
-
-# Diseño de Infraestructura y Deploy Multinivel (Dev, QA, Prod)
-
-## Entornos definidos
-
-Se trabajará con tres entornos principales:
-
-| Entorno                    | Propósito               | Visibilidad | Accesos |
-|----------------------------|---------------------------|--------------------------|--------------------------|
-| Desarrollo (Dev)           | Desarrollo activo, pruebas unitarias, prototipos.  | Interno (equipo técnico) | Acceso libre con auditoría |
-| Calidad (QA) 	             | Pruebas funcionales, automatizadas y de integración. | Interno (QA y Dev) | Acceso validado por IP/MFA |
-| Producción (Prod) 	     | Sistema en vivo operando para usuarios reales. | Externo (usuarios reales) | Acceso limitado y monitorizado |
-
-## Diseño de Infraestructura por entorno
-### Estructura común
-Cada entorno tendrá su propia infraestructura separada:
-
-| Componente | Tecnología / Propuesta |
-|------------|----------------------|
-| Microservicios / Contenedores | AWS ECS Fargate o EKS (Kubernetes) |
-| Almacenamiento estático | Amazon S3 (carpetas separadas por entorno) |
-| Bases de datos | Amazon RDS, con separación física y lógica |
-| Datalake | Amazon S3 + Glue + Lake Formation |
-| Backend API | API Gateway + Lambda o ECS Services |
-| Autenticación y seguridad | Cognito, IAM Roles, WAF, Secrets Manager |
-| Logs y auditoría | CloudWatch, CloudTrail, GuardDuty, Security Hub |
-
-## Flujo de despliegue y promoción
-### Pipeline de CI/CD
-
-| Etapa | Acción |
-|-------|---------|
-| Commit | Desarrollador sube cambios |
-| Build | Generación automática de contenedores / artefactos |
-| Test en Dev | Pruebas unitarias e integración en entorno aislado |
-| Deploy a QA | Validación funcional, automatizada y manual por QA |
-| Deploy a Producción | Promoción con revisión manual, monitoreo activo |
-
-Herramientas sugeridas: GitHub Actions / GitLab CI / AWS CodePipeline
-
-### Guía de *How to* añadir un nuevo entorno de pruebas al pipeline de GitHub Actions.
-
-* Crear un archivo de configuración para el entorno (ejemplo `env.test.json` con variables específicas del entorno de pruebas).
-
-* Actualizar el workflow de GitHub Actions `.github/workflows/deploy.yml` y agregar un nuevo job para el entorno de pruebas:
-
-* Agregar variables y secretos en GitHub (en Settings -> Secrets and variables -> Actions y agrega las credenciales necesarias).
-
-* Probar el pipeline y verificar que este ejecuta las pruebas y despliega correctamente al entorno de pruebas.
-
-### Control de versiones y trazabilidad
-	
-Cada despliegue debe llevar:
-
--	Código hash o número de versión
--	Registro de cambios (changelog)
--	Validación previa en QA
-
-	Todas las promociones se registran con trazabilidad completa.
-
-### Control de acceso y seguridad    
-| Capa | Medidas aplicadas |
-|------|------------------|
-| Dev | Acceso abierto para desarrolladores con logs |
-| QA | Acceso controlado, datos sintéticos y cifrados |
-| Producción | Acceso restringido, monitoreo y MFA obligatorio |
-| Red | Control por listas blancas y segmentación de VPCs |
-| Datos sensibles | Siempre cifrados en tránsito y reposo |
-
-## Auditoría y monitoreo
--	Logs por entorno capturados vía CloudWatch + CloudTrail
--	Alertas configuradas en QA y Producción
--	Producción monitoreada con métricas clave:
-o	Tiempo de respuesta
-o	Errores
-o	Uso de recursos
--	Seguridad reforzada en Producción con GuardDuty + Security Hub
-
-## Diagrama del flujo CI/CD simplificado
-![imagen](Recursos/DiagramaFLujoCICD.png)
-
-## Configuración de Scripts de Deployment – GitHub Actions
-Para cada entorno definido (Dev, QA, Producción), se emplearán pipelines automatizados de CI/CD mediante GitHub Actions. A continuación, se describen los archivos base de configuración YAML utilizados para orquestar los despliegues por entorno.
-
-1. Archivo: `.github/workflows/deploy-dev.yml`
-- Ejecutado en push a rama `develop`
-- Corre pruebas unitarias
-- Despliega automáticamente a entorno Dev (ECS / Lambda)
-- Incluye logging en CloudWatch y notificación opcional
-
-2. Archivo: `.github/workflows/deploy-qa.yml`
-- Ejecutado en push a rama `release/qa`
-- Corre pruebas integradas y de regresión
-- Despliega a entorno QA con validaciones predefinidas
-
-3. Archivo: `.github/workflows/deploy-prod.yml`
-- Ejecutado manualmente vía GitHub Actions
-- Requiere aprobación (manual trigger)
-- Despliega solo si QA fue exitoso
-- Integra monitoreo con GuardDuty y CloudTrail post-deploy
-
-Ejemplo de configuración mínima:
-
-```yaml
-name: Deploy to Dev
-on:
-  push:
-    branches: [develop]
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-    - name: Install dependencies
-      run: npm install
-    - name: Run tests
-      run: npm test
-    - name: Deploy to AWS Lambda
-      uses: appleboy/lambda-action@master
-      with:
-        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        function_name: data-pura-vida-dev
-        zip_file: dist/lambda.zip
-```
------------------------------------
-# Datos, Datalakes e Interoperabilidad
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Definición del Motor de Carga ETDL Inteligente con IA
 
@@ -798,7 +802,7 @@ Se encarga de registrar todo lo que sucede: desde el origen del dataset, hasta c
 
 Tecnologías: AWS CloudWatch Logs, DynamoDB.
 
-_________________________________________________________________
+--------------------------------------------------------------------------------------------------------------------------------------------
 
 ## Control de Versiones y Deltas para Cada Dataset
 
@@ -903,8 +907,86 @@ Esta información se puede guardar en una tabla en `DynamoDB` o en archivos en `
 -	Mantiene trazabilidad, ya que se puede reconstruir cualquier versión del dataset si es necesario.
 - Facilita auditorías y debugging.
 
-_______________________________________________
----------------
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## Especificación de Interfaces de Ingesta de Datos Externos
+Como arquitecto de software, quiero definir los formatos, protocolos y contratos para recibir datos desde archivos, APIs, bases SQL/NoSQL o conexiones directas, para habilitar la interoperabilidad. Este documento especifica cómo se aplicarán estos principios en la plataforma Data Pura Vida.
+
+### 1. Ingesta desde Archivos
+- Formatos Aceptados: CSV, JSON, Excel (XLSX).
+- Validación automática usando AWS Glue.
+- Carga a Amazon S3 en buckets versionados y cifrados.
+- Metadata requerida: nombre, descripción, fecha, esquema de columnas.
+- Validación de duplicados y estructura mediante flujos ETDL (AWS Glue Jobs).
+- Contrato: Cada archivo debe tener un manifest.json que describa los campos y tipos de datos esperados.
+### 2. Ingesta vía APIs
+- APIs RESTful expuestas a través de Amazon API Gateway.
+- Formato de intercambio: JSON.
+- Seguridad: OAuth2 + JWT emitido por Amazon Cognito.
+- Versionamiento de APIs: /v1/, /v2/.
+- Límite de tasa (throttling) por IP para prevenir abuso.
+- Validación de datos de entrada usando AWS Lambda + TypeScript (Zod).
+### 3. Ingesta desde Bases SQL/NoSQL
+- Bases SQL: PostgreSQL.
+- Bases NoSQL: DynamoDB.
+- Conexión segura mediante VPN o AWS PrivateLink.
+- Ingesta mediante AWS DMS (Database Migration Service) para cargas iniciales y diferenciales.
+- Contrato de sincronización: Esquemas y tablas deben contener claves primarias o claves particionadas (en NoSQL).
+- Transformación: Procesos ETDL ajustan los datos para integrarlos en el Data Lake.
+### 4. Conexiones Directas
+- Se permiten conexiones directas controladas solo bajo modelos Push desde sistemas externos.
+- Integración mediante AWS EventBridge o SQS.
+- Validación estricta de eventos entrantes (formato, origen, integridad).
+- Seguridad basada en IAM Roles y políticas de mínimo privilegio.
+
+
+####  Aplicación en Data Pura Vida
+Todas las rutas de ingesta definidas serán monitoreadas y auditadas por AWS CloudTrail y AWS CloudWatch.
+Los datos ingresados se almacenarán cifrados en Amazon S3, gestionados mediante Lake Formation para control de acceso.
+La interoperabilidad será garantizada transformando todos los datos a formatos estándar (Apache Parquet) en el Data Lake.
+Cada dataset ingresado debe cumplir los contratos de metadatos y pasar por validaciones automáticas de estructura y contenido antes de estar disponible en la plataforma.
+La autenticación y control de acceso seguirá las políticas implementadas con Amazon Cognito, JWT y AWS IAM.
+
+### 5. Ejemplos de Configuración de Data Sources
+
+A continuación, se presentan ejemplos reales de cómo se definen los metadatos de datasets que ingresan al sistema, tanto en formato JSON como en una tabla tipo.
+
+Ejemplo de Manifest JSON
+
+```json
+{
+  "dataset_name": "compras_mensuales",
+  "description": "Registros de compras mensuales realizadas por usuarios",
+  "schema": [
+    { "name": "compra_id", "type": "string" },
+    { "name": "user_id", "type": "string" },
+    { "name": "fecha_compra", "type": "timestamp" },
+    { "name": "monto", "type": "decimal(10,2)" }
+  ],
+  "primary_key": ["compra_id"],
+  "partition_by": ["fecha_compra"],
+  "sensitivity_level": "medio"
+}
+```
+
+### Ejemplo de Tabla de Metadatos
+
+| Campo             | Tipo de Dato           | Obligatorio   | Descripción                         |
+|:------------------|:-----------------------|:--------------|:------------------------------------|
+| dataset_name      | STRING                 | Sí            | Nombre único del dataset            |
+| description       | STRING                 | Sí            | Descripción del contenido           |
+| schema            | JSONB                  | Sí            | Lista de columnas con tipo de dato  |
+| primary_key       | ARRAY<STRING>          | Sí            | Claves primarias                    |
+| partition_by      | ARRAY<STRING>          | No            | Campos usados para particionamiento |
+| sensitivity_level | ENUM (bajo/medio/alto) | Sí            | Nivel de sensibilidad del contenido |
+| ingestion_type    | ENUM (file/api/db)     | Sí            | Tipo de fuente de datos             |
+| last_updated      | TIMESTAMP              | No            | Fecha de última modificación        |
+
+El diseño de estas interfaces prioriza la interoperabilidad y la automatización segura. La autenticación OAuth2 con JWT y el uso de mTLS garantizan la integridad de los datos recibidos desde APIs, archivos o bases remotas. Además, se aplica inteligencia artificial en el motor ETDL para validar semánticamente estructuras y contenido de los datasets entrantes, identificando duplicidades y errores. Esta arquitectura permite escalar de manera segura, mitigando el riesgo de ingestiones erróneas con validaciones automáticas y monitoreo activo por servicio.
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
 # Seguridad, Cumplimiento y Cifrado
 
 ## Política de Cifrado en Reposo y en Tránsito para Data Pura Vida
@@ -1041,6 +1123,8 @@ Ubicación: Cognito > User Pools / IAM > Roles y políticas
 
 La política está alineada con las mejores prácticas de seguridad y cumplimiento normativo, incluyendo la implementación de cifrado extremo a extremo, llaves tripartitas distribuidas, y protocolos seguros como TLS 1.3. Se emplean herramientas como Macie para identificar datos sensibles en buckets, y CloudTrail para auditar el acceso. Aunque la gestión distribuida de llaves puede ser operativamente compleja, se mitiga mediante custodios designados, quorum mínimo y automatización de recuperación y rotación de llaves con AWS Secrets Manager y STS. 
 
+-------------------------------------------------------------------------
+
 ## Diseño de Llave Criptográfica Tripartita
 Las llaves tripartitas en el contexto de este sistema van a ser de utilidad para proteger las claves criptográficas generadas distribuyendo una parte a Data Pura Vida y las otras dos a personas, entidades, etc. definidas por el usuario.
 
@@ -1049,7 +1133,9 @@ El sistema propuesto para implementar esta llave utiliza AWS KMS y CloudHSM para
 El diagrama siguiente puede ayudar a entender el funcionamiento de esta llave de una mejor manera.
 ![imagen](Recursos/LlaveTDiagrama.png)
 
-Las ventajas que proporciona el uso de esta llave es la mencionada redundancia ya que, si se pierde una parte, el sistema sigue funcionando y también mitiga riesgos de compromiso por una sola parte. Este sistema no asegura que exista complejidad en la gestión de las partes o que exista un riesgo de ataque si dos partes cometen un fallo o se ve violentada su seguridad (esto último podría evitarse obligando a ser necesarias las tres parte de la llave). 
+Las ventajas que proporciona el uso de esta llave es la mencionada redundancia ya que, si se pierde una parte, el sistema sigue funcionando y también mitiga riesgos de compromiso por una sola parte. Este sistema no asegura que exista complejidad en la gestión de las partes o que exista un riesgo de ataque si dos partes cometen un fallo o se ve violentada su seguridad (esto último podría evitarse obligando a ser necesarias las tres parte de la llave).
+
+-----------------------------------------------------------------------------------------------------
 
 ## Aseguramiento del Cumplimiento Normativo y de Estándares
 Para cumplir con los estándares internacionales y legislaciones nacionales, se implementaron una serie de logs, alertas obligatorias y un mecanismo de auditoria para asegurar el apego a estos estándares y legislaciones.
@@ -1107,7 +1193,8 @@ NIST Cybersecurity Framework DE.CM-4 y DE.AE-3
 PCI DSS Req 10
 Ley 81 Art. 5
 -->
--->
+
+---------------------------------------------------------
 
 ## Restricción de Acceso Técnico a Datos Sensibles
 Se debe garantizar que ningún personal técnico, de devops, ingeniero de datos etc. tenga ingreso a los datos sin una debida autorización, para eso se diseñó un sistema que combina 6 factores clave:
@@ -1207,36 +1294,37 @@ macie.create_classification_job(
 )
 ```
 
------------------
+----------------------
+
 # Visualización y Monitoreo
 
-# Sistema de Métricas, Consumo y Alertas
+## Sistema de Métricas, Consumo y Alertas
 El sistema de módulos planteados a continuación busca proporcionar una visión completa del sistema comenzando por la métricas más críticas con la posibilidad de agregar las que se necesiten según se considere necesario. 
 
 Dentro de las especificaciones técnicas dentro del sistema se encuentra la frecuencia de muestreo se tienen 15 segundos para las métricas clave, 1 minuto para demás métricas operacionales y 1 hora para los historiales. En materia de retención de datos se van a tener los datos más actuales a 7 días de su extracción, los de corto plazo a 30 días y los de largo plazo de estos 30 días en adelante. Se pueden tomar en cuenta otros módulos como módulos para la gestión del ciclo de vida de los datos o para seguridad, pero estos no van a ser explicados en detalle.
 
 Los módulos claves del sistema son los siguientes:
 
-## 1. Módulos de Recolección de Métricas
+### 1. Módulos de Recolección de Métricas
 
-### 1.1. Módulo de Telemetría de Datos
+#### 1.1. Módulo de Telemetría de Datos
 Este módulo es el encargado de recoger métricas como el volumen de datos procesados (GB/día), tasa de transferencia (MB/seg), latencia en pipelines de ETL y los tiempos de respuesta por API. Esto es posible mediante AWS CloudWatch con Prometheus.
 
-### 1.2. Módulo de Auditoría de Accesos
+#### 1.2. Módulo de Auditoría de Accesos
 Este módulo recoge datos y métricas como intentos de acceso fallidos, patrones de consulta sospechosos y uso de credenciales temporales esto mediante tecnologías como AWS CloudTrail.
 
-## 2. Módulos de Procesamiento y Análisis
+### 2. Módulos de Procesamiento y Análisis
 
-### 2.1. Módulo de Detección de Anomalías
+#### 2.1. Módulo de Detección de Anomalías
 Este módulo es el encargado de seguir que se siga el "comportamiento normal" modelado y de alertar en tiempo real las desviaciones esto a gracias a Amazon Lookout for Metrics que detecta anomalías en métricas e identifica su causa de manera automática.
 
-### 2.2. Módulo de Rendimiento Operativo
+#### 2.2. Módulo de Rendimiento Operativo
 Este módulo consiste en desbordas de métricas como disponibilidad del sistema (uptime), capacidad de almacenamiento utilizada y rendimiento de consultas. Estos dashboards pueden ser fácilmente implementados usando plantillas o creándolos desde cero con tecnologías como Grafana o AWS QuickSight
 
-## 3. Módulos de Visualización y Alertas
+### 3. Módulos de Visualización y Alertas
 Este módulo va a contar con ciertos dashboards, widgets, gráficos etc. que van a servir para visualizar la salud del sistema, monitorear el uso de recursos y crear alertas si se presenta un problema de seguridad.
 
-## 4. Guía *How to* crear un nuevo dashboard en Grafana para monitoreo de ETL.
+### 4. Guía *How to* crear un nuevo dashboard en Grafana para monitoreo de ETL.
 
 * Identifica el evento o proceso a monitorear, por ejemplo, cantidad de registros procesados.
 
@@ -1263,6 +1351,8 @@ def lambda_handler(event, context):
 
 * Verificar la métrica en la consola de CloudWatch 
 
+-----------------------------------------------------------
+
 ## Arquitectura del Portal de BackOffice
 
 ## Funciones clave del portal
@@ -1277,7 +1367,6 @@ def lambda_handler(event, context):
 | Gestión de roles y permisos | Asignar perfiles a operadores, definir visibilidad y niveles de aprobación. |
 | Generación de reportes   | Crear reportes detallados para análisis técnico o cumplimiento normativo.   |
 
----
 
 ## Arquitectura del sistema
 
@@ -1362,127 +1451,7 @@ Los permisos están jerarquizados y condicionados al contexto de cada entidad (e
 ## Diagrama Arquitectura Portal Backoffice
 ![imagen](Recursos/DiagramaArquitecturaPortalBackOffice.png)
 
-
-
-## Especificación de Interfaces de Ingesta de Datos Externos
-Como arquitecto de software, quiero definir los formatos, protocolos y contratos para recibir datos desde archivos, APIs, bases SQL/NoSQL o conexiones directas, para habilitar la interoperabilidad. Este documento especifica cómo se aplicarán estos principios en la plataforma Data Pura Vida.
-
-### 1. Ingesta desde Archivos
-- Formatos Aceptados: CSV, JSON, Excel (XLSX).
-- Validación automática usando AWS Glue.
-- Carga a Amazon S3 en buckets versionados y cifrados.
-- Metadata requerida: nombre, descripción, fecha, esquema de columnas.
-- Validación de duplicados y estructura mediante flujos ETDL (AWS Glue Jobs).
-- Contrato: Cada archivo debe tener un manifest.json que describa los campos y tipos de datos esperados.
-### 2. Ingesta vía APIs
-- APIs RESTful expuestas a través de Amazon API Gateway.
-- Formato de intercambio: JSON.
-- Seguridad: OAuth2 + JWT emitido por Amazon Cognito.
-- Versionamiento de APIs: /v1/, /v2/.
-- Límite de tasa (throttling) por IP para prevenir abuso.
-- Validación de datos de entrada usando AWS Lambda + TypeScript (Zod).
-### 3. Ingesta desde Bases SQL/NoSQL
-- Bases SQL: PostgreSQL.
-- Bases NoSQL: DynamoDB.
-- Conexión segura mediante VPN o AWS PrivateLink.
-- Ingesta mediante AWS DMS (Database Migration Service) para cargas iniciales y diferenciales.
-- Contrato de sincronización: Esquemas y tablas deben contener claves primarias o claves particionadas (en NoSQL).
-- Transformación: Procesos ETDL ajustan los datos para integrarlos en el Data Lake.
-### 4. Conexiones Directas
-- Se permiten conexiones directas controladas solo bajo modelos Push desde sistemas externos.
-- Integración mediante AWS EventBridge o SQS.
-- Validación estricta de eventos entrantes (formato, origen, integridad).
-- Seguridad basada en IAM Roles y políticas de mínimo privilegio.
-
-
-####  Aplicación en Data Pura Vida
-Todas las rutas de ingesta definidas serán monitoreadas y auditadas por AWS CloudTrail y AWS CloudWatch.
-Los datos ingresados se almacenarán cifrados en Amazon S3, gestionados mediante Lake Formation para control de acceso.
-La interoperabilidad será garantizada transformando todos los datos a formatos estándar (Apache Parquet) en el Data Lake.
-Cada dataset ingresado debe cumplir los contratos de metadatos y pasar por validaciones automáticas de estructura y contenido antes de estar disponible en la plataforma.
-La autenticación y control de acceso seguirá las políticas implementadas con Amazon Cognito, JWT y AWS IAM.
-
-### 5. Ejemplos de Configuración de Data Sources
-
-A continuación, se presentan ejemplos reales de cómo se definen los metadatos de datasets que ingresan al sistema, tanto en formato JSON como en una tabla tipo.
-
-Ejemplo de Manifest JSON
-
-```json
-{
-  "dataset_name": "compras_mensuales",
-  "description": "Registros de compras mensuales realizadas por usuarios",
-  "schema": [
-    { "name": "compra_id", "type": "string" },
-    { "name": "user_id", "type": "string" },
-    { "name": "fecha_compra", "type": "timestamp" },
-    { "name": "monto", "type": "decimal(10,2)" }
-  ],
-  "primary_key": ["compra_id"],
-  "partition_by": ["fecha_compra"],
-  "sensitivity_level": "medio"
-}
-```
-
-### Ejemplo de Tabla de Metadatos
-
-| Campo             | Tipo de Dato           | Obligatorio   | Descripción                         |
-|:------------------|:-----------------------|:--------------|:------------------------------------|
-| dataset_name      | STRING                 | Sí            | Nombre único del dataset            |
-| description       | STRING                 | Sí            | Descripción del contenido           |
-| schema            | JSONB                  | Sí            | Lista de columnas con tipo de dato  |
-| primary_key       | ARRAY<STRING>          | Sí            | Claves primarias                    |
-| partition_by      | ARRAY<STRING>          | No            | Campos usados para particionamiento |
-| sensitivity_level | ENUM (bajo/medio/alto) | Sí            | Nivel de sensibilidad del contenido |
-| ingestion_type    | ENUM (file/api/db)     | Sí            | Tipo de fuente de datos             |
-| last_updated      | TIMESTAMP              | No            | Fecha de última modificación        |
-
-El diseño de estas interfaces prioriza la interoperabilidad y la automatización segura. La autenticación OAuth2 con JWT y el uso de mTLS garantizan la integridad de los datos recibidos desde APIs, archivos o bases remotas. Además, se aplica inteligencia artificial en el motor ETDL para validar semánticamente estructuras y contenido de los datasets entrantes, identificando duplicidades y errores. Esta arquitectura permite escalar de manera segura, mitigando el riesgo de ingestiones erróneas con validaciones automáticas y monitoreo activo por servicio.
-
-
-## Integraciones claras con sistemas externos: APIs, llaves, protocolos de autenticación (OAuth2, JWT), esquemas de clase
-
-### Integraciones con Sistemas Externos y Mecanismos de Autenticación
-
-El ecosistema Data Pura Vida contempla múltiples integraciones seguras con servicios externos y protocolos estándar.
-
-#### APIs externas utilizadas
-
-| Integración          | Función                                | Protocolo      | Autenticación         |
-|----------------------|----------------------------------------|----------------|------------------------|
-| Stripe / SINPE APIs  | Procesamiento de pagos por datasets    | REST           | API Key + Webhook firmado |
-| Twilio               | Notificaciones de aprobación, alertas  | REST           | Token bearer           |
-| Amazon SES           | Envío de correos                       | SMTP / SDK     | IAM Role               |
-| Datasets externos    | Sincronización de datos (INEC, Hacienda, etc.) | REST / Push   | OAuth2, Token delegados   |
-
-#### Autenticación y Autorización
-
-- **Protocolo base:** OAuth2.0 con flujos adaptados a usuarios públicos, institucionales y técnicos.
-- **Tokens:** JWT firmados con claves rotadas automáticamente y validados vía AWS Cognito y Lambda.
-- **Roles y atributos:** RBAC + ABAC (via Amazon IAM).
-- **Gestión de llaves:**
-  - Llaves simétricas: AES256 generadas con AWS KMS.
-  - Llaves asimétricas: RSA para firmas y tokens.
-  - Llaves tripartitas: mediante Shamir’s Secret Sharing con partes distribuidas entre custodios.
-
-#### Ejemplo de Esquema de Clase: Token de Acceso
-
-```typescript
-class AccessToken {
-  token: string;
-  issuedAt: Date;
-  expiresAt: Date;
-  userId: string;
-  roles: string[];
-  scopes: string[];
-  signature: string;
-
-  isValid(): boolean {
-    return Date.now() < this.expiresAt.getTime();
-  }
-}
-
-```
+-----------------------------------------------------------------
 
 ## Arquitectura del Motor de Prompts para Consultas Inteligentes
 
@@ -1634,7 +1603,7 @@ El motor de prompts implementa seguridad en distintos niveles:
 
 5.	Bloqueo y reformulación de prompts sensibles: Si un prompt intenta acceder a datos restringidos (por ejemplo: “muéstrame ingresos por persona en mi distrito”), el sistema puede reformular automáticamente la consulta o negarla, manteniendo siempre la trazabilidad del intento.
 
-
+-------------------------------------------------------------
 
 ## Diseño de Restricciones de Visualización Sin Exportación
 
@@ -1710,7 +1679,55 @@ configurados en Lake Formation, solo permiten lectura controlada (con RLS) y no 
 
 La estrategia implementada asegura que los usuarios solo puedan visualizar los datos dentro de la plataforma, sin posibilidad de exportarlos o reproducirlos por medios tradicionales. Se utilizan dashboards embebidos sin controles de descarga, protección reforzada con RLS, JWT temporales, y monitoreo con Macie para detectar patrones sospechosos. Aunque esta medida maximiza la protección contra la fuga de datos, podría percibirse como restrictiva. Se compensa mediante métricas de uso, explicaciones de seguridad y visualizaciones generadas automáticamente por IA que cumplen con las políticas de acceso sin comprometer la experiencia del usuario.
 
-# Servicios Críticos: Configuración, Monitoreo, Alta Disponibilidad y Fallback
+------------------------------------------------------------------------------------------
+
+## Integraciones claras con sistemas externos: APIs, llaves, protocolos de autenticación (OAuth2, JWT), esquemas de clase
+
+### Integraciones con Sistemas Externos y Mecanismos de Autenticación
+
+El ecosistema Data Pura Vida contempla múltiples integraciones seguras con servicios externos y protocolos estándar.
+
+#### APIs externas utilizadas
+
+| Integración          | Función                                | Protocolo      | Autenticación         |
+|----------------------|----------------------------------------|----------------|------------------------|
+| Stripe / SINPE APIs  | Procesamiento de pagos por datasets    | REST           | API Key + Webhook firmado |
+| Twilio               | Notificaciones de aprobación, alertas  | REST           | Token bearer           |
+| Amazon SES           | Envío de correos                       | SMTP / SDK     | IAM Role               |
+| Datasets externos    | Sincronización de datos (INEC, Hacienda, etc.) | REST / Push   | OAuth2, Token delegados   |
+
+#### Autenticación y Autorización
+
+- **Protocolo base:** OAuth2.0 con flujos adaptados a usuarios públicos, institucionales y técnicos.
+- **Tokens:** JWT firmados con claves rotadas automáticamente y validados vía AWS Cognito y Lambda.
+- **Roles y atributos:** RBAC + ABAC (via Amazon IAM).
+- **Gestión de llaves:**
+  - Llaves simétricas: AES256 generadas con AWS KMS.
+  - Llaves asimétricas: RSA para firmas y tokens.
+  - Llaves tripartitas: mediante Shamir’s Secret Sharing con partes distribuidas entre custodios.
+
+#### Ejemplo de Esquema de Clase: Token de Acceso
+
+```typescript
+class AccessToken {
+  token: string;
+  issuedAt: Date;
+  expiresAt: Date;
+  userId: string;
+  roles: string[];
+  scopes: string[];
+  signature: string;
+
+  isValid(): boolean {
+    return Date.now() < this.expiresAt.getTime();
+  }
+}
+
+```
+
+-------------------------------------------------------------------------
+
+## Servicios Críticos: Configuración, Monitoreo, Alta Disponibilidad y Fallback
 
 | Dominio                         | Servicio / Componente Crítico                    | Monitoreo                                | Alta Disponibilidad (HA)                                       | Fallback o Recuperación                                     |
 |----------------------------------|--------------------------------------------------|------------------------------------------|----------------------------------------------------------------|--------------------------------------------------------------|
@@ -1729,6 +1746,8 @@ La estrategia implementada asegura que los usuarios solo puedan visualizar los d
 | Pagos y transacciones       | Stripe / SINPE APIs                              | Fallas de API, rechazos                  | Balanceo + rutas secundarias por fallback                       | Reintento con backoff y alerta manual                      |
 | Alertas y Logs              | CloudWatch + CloudTrail + Security Hub           | Logs centralizados, alertas proactivas   | Replicación logs / dashboards multientorno                      | Retención extendida + exportación a S3                     |
 | CI/CD        | GitHub Actions / AWS CodePipeline                | Estado de pipelines, pasos fallidos      | Jobs paralelos + runners de backup                             | Reejecución manual y automática de jobs fallidos           |
+
+--------------------------------------------------------------
 
 ## Evaluación de riesgos
 Esta evaluación de riesgos va a ser realizada con la metodología de ISO 31000, se van a identificar, evaluar y proponer un tratamiento a estos riesgos potenciales del sistema, se debe de tener en cuenta que estos riesgos mencionados no son ni van a ser los únicos que se pueden presentar en el sistema y que siempre se pueden extraer más si se hace un análisis más profundo de estos.
@@ -1776,9 +1795,9 @@ Esta evaluación de riesgos va a ser realizada con la metodología de ISO 31000,
 | R9  | Backups automáticos y retención en S3                                                                                 |
 | R10 | Pruebas de alertas, redundancia en canales de notificación y monitoreo de efectividad de alertas                      |
 
-_______________________________________________________
+---------------------------------------------------------------------
 
-# Customer Journeys y Service Design
+## Customer Journeys y Service Design
 
 Estos customers journeys consideran:
 
@@ -1808,17 +1827,17 @@ Para el Service Design se diseña un Blueprints, el cual considera:
 
 - Puntos de dolor (pain points)
 
-## 1. Registro de nueva entidad pública
+### 1. Registro de nueva entidad pública
 
 ![imagen](Recursos/Registro.png)
 ![imagen](Recursos/BP-Registro.png)
 
-## 2. Subida de un nuevo dataset desde una entidad 
+### 2. Subida de un nuevo dataset desde una entidad 
 
 ![imagen](Recursos/NuevoDataset.png)
 ![imagen](Recursos/BP-NuevoDataset.png)
 
-## 3. Consulta ciudadana con IA (prompt-to-dashboard) 
+### 3. Consulta ciudadana con IA (prompt-to-dashboard) 
 
 ![imagen](Recursos/Consulta.png)
 ![imagen](Recursos/BP-Consulta.png)
