@@ -414,15 +414,19 @@ La arquitectura de Data Pura Vida se organiza en una estructura de capas lógica
 ## Riesgos técnicos iniciales identificados
 
 1. Complejidad de integraciones entre componentes con IA
+
 Mitigación propuesta: Diseñar APIs intermedias desacopladas
 
-2. Manejo de llaves criptográficas tripartitas	
+1. Manejo de llaves criptográficas tripartitas	
+
 Mitigación propuesta: Uso de custodios distribuidos con mecanismo de quorum
 
-3. Cumplimiento normativo y legal		
+1. Cumplimiento normativo y legal		
+
 Mitigación propuesta: Integración temprana con asesoría legal para auditoría
 
-4. Seguridad de datos en ambientes técnicos	
+1. Seguridad de datos en ambientes técnicos	
+
 Mitigación propuesta: Políticas Zero Trust + cifrado forzado en todas las capas
 
 # Modelo de Gobernanza de Seguridad y Accesos
@@ -885,20 +889,31 @@ La presente política es consistente con la arquitectura técnica definida para 
 ### Cifrado de Datos en Reposo
 Ámbitos de Aplicación
 Data Lake (Amazon S3): Uso de SSE-KMS para cifrado automático de objetos.
+
 PostgreSQL (Amazon RDS): Cifrado activado en instancia.
+
 DynamoDB: Cifrado con llaves gestionadas por KMS.
+
 Field-Level Encryption: Solo campos sensibles (PII) serán cifrados para optimizar performance.
+
 Amazon Macie: Identificación automática de datos sensibles.
-Gestión de Llaves Criptográficas
+
+#### Gestión de Llaves Criptográficas
+
 Llave Tripartita:
+
 Generación: AWS KMS genera la llave maestra.
+
 División: Shamir’s Secret Sharing (SSS) en 3 partes.
+
 Almacenamiento:
   - Parte 1: AWS Secrets Manager.
   - Parte 2 y 3: Custodios externos validados (representante legal y contralor independiente).
+
 Recuperación:
   - Mínimo 2 partes requeridas.
   - Funciones AWS Lambda con credenciales temporales para uso en memoria.
+
 Aplicación:
   - Reconstrucción temporal para desencriptar datasets sensibles.
   - Eliminación inmediata de material sensible post-operación.
@@ -906,16 +921,26 @@ Aplicación:
 ### Cifrado de Datos en Tránsito
 Ámbitos de Aplicación
 Comunicación entre usuarios y plataforma: HTTPS/TLS 1.2+.
+
 Comunicación entre microservicios: mTLS (mutual TLS).
+
 Transferencias externas: Protocolos seguros (SFTP, HTTPS).
+
 Tecnologías y Herramientas
+
 Amazon API Gateway: Protección de APIs.
+
 AWS WAF: Firewall de aplicaciones web.
+
 Amazon Cognito: Autenticación OAuth2, MFA.
+
 AWS ACM: Certificados SSL/TLS gestionados.
+
 Control de Acceso
 Modelo Zero Trust: Validación continua de identidad y contexto.
+
 Just-in-Time Access: Credenciales temporales.
+
 Logging: AWS CloudWatch para registros de acceso y operaciones.
 
 ### Cumplimiento Normativo
